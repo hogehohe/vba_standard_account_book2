@@ -737,23 +737,28 @@ Sub paintPostureScore(processingRange As Long)
 
 End Sub
 
+
 '『全体を処理』ボタンが押されたとき
 '全体の姿勢点を計算して、色を塗る
 Sub paintAll()
     Call paintPostureScore(2)
 End Sub
 
+
 '『Cancel』ボタンが押されたとき
 '選択範囲の姿勢点を計算して、色を塗る（強制ボタンのキャンセル）
 Sub paintSelected()
-    '引数1:processingRange As Long 処理範囲を決める
 
-    '後で修正することになるが、7列目より小さい列が選択されていたら処理をしない
+    ' 選択範囲の左端の列が「0列目（＝姿勢点列）」以下なら処理をスキップ
     If DataAjsSht.activeCells <= COLUMN_ZERO_NUM Then
         Exit Sub
     End If
-    Call paintPostureScore(1)
+
+    ' 選択範囲のみ再描画
+    paintPostureScore 1
+
 End Sub
+
 
 '塗りつぶしを全てクリア
 Sub clear(ws As Worksheet)
@@ -770,383 +775,209 @@ Sub clear(ws As Worksheet)
 End Sub
 
 
-'結果の修正ボタン
-'姿勢点を強制的に変更する
-'ボタン別で引数postureScorebuttonが変わる
+'------------------------------------------------------------
+' 姿勢点の強制修正処理
+'
+' 引数:
+'   postureScorebutton - 押されたボタンの点数（0〜10:強制, -1:リセット, 99:除外）
+'------------------------------------------------------------
 Sub forceResult(postureScorebutton As Long)
-    '---------------------------------------------
-    'RGBを指定するための変数を定義
-    '---------------------------------------------
-    '信頼性
-    Dim colorMeasureSection    As String '水色
-    Dim colorPredictSection    As String '黄色
-    Dim colorMissingSection    As String 'ピンク
-    Dim colorForcedSection     As String '青色
-    Dim colorResetSection     As String 'グレー
 
-    '姿勢点
-    Dim colorResultGreen       As String '緑色
-    Dim colorResultYellow      As String '黄色
-    Dim colorResultRed         As String '赤色
-    Dim colorResultGlay        As String 'グレー
-    Dim colorResultWhite       As String '白色 20221219_下里
-    Dim colorResultBrown       As String '茶色 20221222_下里
-    Dim colorResultOFFGlay     As String 'グレー 20221222_下里
-    '---------------------------------------------
-    '変数に色をセット
-    '---------------------------------------------
-    '1:測定、2:推定、3:欠損、4:強制、5:除外
-    '信頼性
-    colorMeasureSection = RGB(0, 176, 240)   '水色
-    colorPredictSection = RGB(252, 246, 0)   '黄色
-    colorMissingSection = RGB(255, 124, 128) 'ピンク
-    colorForcedSection = RGB(0, 51, 204)     '青色
-    colorResetSection = RGB(191, 191, 191)  'グレー
-    '姿勢点
-    colorResultGreen = RGB(0, 176, 80)       '緑色
-    colorResultYellow = RGB(255, 192, 0)     '黄色
-    colorResultRed = RGB(192, 0, 0)          '赤色
-    colorResultGlay = RGB(191, 191, 191)     'グレー
-    colorResultWhite = RGB(255, 255, 255)    '白色
-'    colorResultBrown = RGB(64, 0, 0)         '茶色
-    colorResultOFFGlay = RGB(217, 217, 217)  '判定オフ用のグレー
+    ' 色設定：信頼性
+    Dim colorMeasureSection As String
+    Dim colorPredictSection As String
+    Dim colorMissingSection As String
+    Dim colorForcedSection  As String
+    Dim colorResetSection   As String
 
-'    If DataAjsSht.activeCells <= 6 Then
-'        Exit Sub
-'    End If
-    Dim baseClm As Long
-    Dim shtPage As Long
-    shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
-    baseClm = LIMIT_COLUMN * shtPage
+    ' 色設定：姿勢点
+    Dim colorResultGreen    As String
+    Dim colorResultYellow   As String
+    Dim colorResultRed      As String
+    Dim colorResultGlay     As String
+    Dim colorResultWhite    As String
+    Dim colorResultOFFGlay  As String
 
-    '選択範囲内のセル読み込み用　20221222_下里
-    Dim SelectCells  As Variant
-    Dim MaxRightCell As Variant
-    Dim MinLeftCell  As Variant
+    ' RGBの割り当て
+    colorMeasureSection = RGB(0, 176, 240)
+    colorPredictSection = RGB(252, 246, 0)
+    colorMissingSection = RGB(255, 124, 128)
+    colorForcedSection  = RGB(0, 51, 204)
+    colorResetSection   = RGB(191, 191, 191)
 
-    Dim lCol As Long
-    Dim rCol As Long
+    colorResultGreen    = RGB(0, 176, 80)
+    colorResultYellow   = RGB(255, 192, 0)
+    colorResultRed      = RGB(192, 0, 0)
+    colorResultGlay     = RGB(191, 191, 191)
+    colorResultWhite    = RGB(255, 255, 255)
+    colorResultOFFGlay  = RGB(217, 217, 217)
 
-    '一時的にSelection.rowの価を保存しておく変数
-    Dim postur_row As Long
+    ' 現在のシート位置から列オフセットを計算
+    Dim shtPage As Long: shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
+    Dim baseClm As Long: baseClm = LIMIT_COLUMN * shtPage
 
-    '変数定義
-    Dim k As Long
-    Dim m As Long
+    Dim lCol As Long, rCol As Long
+    Dim MinLeftCell As Variant, MaxRightCell As Variant
 
+    If CropSelectionToDataArea(lCol, rCol) Then
+        MinLeftCell = lCol
+        MaxRightCell = rCol
 
-    '---------------------------------------------
-    'ここから強制処理
-    '---------------------------------------------
-'    With ThisWorkbook.Sheets("姿勢素点修正シート")
-    With ThisWorkbook.ActiveSheet
+        With ThisWorkbook.ActiveSheet
+            ' 選択範囲をクリア
+            .Range(.Cells(ROW_POSTURE_SCORE_TOP, MinLeftCell), _
+                   .Cells(ROW_POSTURE_SCORE_BOTTOM, MaxRightCell)).Interior.ColorIndex = 0
 
-        '修正シートの選択範囲はポイント計算シートからはみ出さない範囲にあること
-        '修正シートの選択範囲は色塗りできる範囲にあること
-        If CropSelectionToDataArea(lCol, rCol) Then
-
-            '選択範囲の左端と右端を取得
-            MinLeftCell = lCol
-            MaxRightCell = rCol
-
-
-            '=================== 2023/12/12 生開育成G修正 =======================
-
-            '選択された範囲のセルの色をクリア
-            .Range _
-            ( _
-                .Cells(ROW_POSTURE_SCORE_TOP, MinLeftCell), _
-                .Cells(ROW_POSTURE_SCORE_BOTTOM, MaxRightCell) _
-            ) _
-            .Interior.ColorIndex = 0
-
-            '====================================================================
-
-            '初期化(resetボタン)
+            ' リセットボタン処理（postureScorebutton = -1）
             If postureScorebutton = -1 Then
-                'ポイント計算シートのフラグ変更
-                Call postureUpdate(MinLeftCell + baseClm, MaxRightCell + baseClm, 0, CInt(postureScorebutton))
-                '修正シートの色塗り
-                Call paintPostureScore(1)
-
-                '調査票での調整用にフラグと数値の初期化
+                postureUpdate MinLeftCell + baseClm, MaxRightCell + baseClm, 0, CInt(postureScorebutton)
+                paintPostureScore 1
                 postureFlag(shtPage + 1) = False
 
-
-            '強制(0～10の姿勢点ボタン)
+            ' 強制処理（0〜10, 99）
             ElseIf postureScorebutton >= 0 Then
-                'ポイント計算シートのフラグ変更
-                Call postureUpdate(MinLeftCell + baseClm, MaxRightCell + baseClm, 1, CInt(postureScorebutton))
+                postureUpdate MinLeftCell + baseClm, MaxRightCell + baseClm, 1, CInt(postureScorebutton)
 
                 If postureScorebutton = 99 Then
-                    ' 調査票での調整用にフラグと数値を保存
-                    If lCol <= 6 Then
-                        postureFlag(shtPage + 1) = True
-                    End If
+                    If lCol <= 6 Then postureFlag(shtPage + 1) = True
 
-                    '初期化を99に変更
-                    '最初に背景塗りつぶし無しにしているので、処理をしない
-                    '信頼性のセルに除外の色を塗る
-                    .Range _
-                    ( _
-                        .Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                        .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell) _
-                    ) _
-                    .Interior.Color = colorResetSection
-                    '▽拳上を一時的に除外
-                    ''2023/1218 育成G追記　拳上げのセルに除外の色を塗る-------------------
-                    '.Range _
-                    '    ( _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MinLeftCell), _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MinLeftCell + Selection.Columns.Count - 1) _
-                    '    ) _
-                    '    .Interior.Color = colorResetSection
-                    ''--------------------------------------------------------------------
-                    ''2023/12/18 育成G追記 姿勢素点のセルに除外の色を塗る
-                    '▽END_拳上を一時的に除外
-                    .Range _
-                        ( _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
-                            .Cells(ROW_POSTURE_SCORE_TOP, MaxRightCell) _
-                        ) _
-                        .Interior.Color = colorResetSection
-                    '--------------------------------------------------------------------
-
+                    ' 姿勢点 + 信頼性セルに除外色を適用
+                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
+                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorResetSection
+                    .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
+                           .Cells(ROW_POSTURE_SCORE_TOP, MaxRightCell)).Interior.Color = colorResetSection
 
                 Else
+                    ' 姿勢点別の色分け
+                    Select Case postureScorebutton
+                        Case 1 To 2
+                            .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
+                                   .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell)).Interior.Color = colorResultGreen
+                        Case 3 To 5
+                            .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
+                                   .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell)).Interior.Color = colorResultYellow
+                        Case 6 To 10
+                            .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
+                                   .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell)).Interior.Color = colorResultRed
+                    End Select
 
-                    '姿勢点のセルに押されたボタンの姿勢点
-                    '1～2点の場合は緑
-                    If postureScorebutton >= 1 _
-                    And postureScorebutton <= 2 Then
-                        .Range _
-                        ( _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell) _
-                        ) _
-                        .Interior.Color = colorResultGreen
-                    '3～5点の場合は黄
-                    ElseIf postureScorebutton >= 3 _
-                    And postureScorebutton <= 5 Then
-                        .Range _
-                        ( _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell) _
-                        ) _
-                        .Interior.Color = colorResultYellow
-                    '6～10点の場合は赤
-                    ElseIf postureScorebutton >= 6 _
-                    And postureScorebutton <= 10 Then
-                        .Range _
-                        ( _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM, MinLeftCell), _
-                            .Cells(ROW_POSTURE_SCORE_BOTTOM - postureScorebutton + 1, MaxRightCell) _
-                        ) _
-                        .Interior.Color = colorResultRed
+                    ' 信頼性セルに強制色
+                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
+                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorForcedSection
+                End If
 
-                    End If
-                    '信頼性のセルに強制色をぬる
-                    .Range _
-                    ( _
-                        .Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                        .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell) _
-                    ) _
-                    .Interior.Color = colorForcedSection
+                ' 信頼性チェック更新
+                checkReliabilityRatio
 
-                End If 'If postureScorebutton <= 2 Then
-
-                '強制のときは単独で実行
-                Call checkReliabilityRatio
-
-                ' データ信頼性・姿勢素点のセルに強制的に白を塗る
-                .Range _
-                ( _
-                    .Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM), _
-                    .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM) _
-                ) _
-                .Interior.Color = colorResultWhite
-
-            End If 'If postureScorebutton = -1 Then
-        Else
-            MsgBox "範囲はグラフ内から選択してください", vbOKOnly + vbCritical, "範囲選択エラー"
-        End If 'If Not (Selection.row = ROW_POSTURE_SCORE_A Or
-    End With 'With ThisWorkbook.Sheets("姿勢素点修正シート")
-
+                ' 信頼性・姿勢点の左端タイトルセルを白でリセット
+                .Range(.Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM), _
+                       .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM)).Interior.Color = colorResultWhite
+            End If
+        End With
+    Else
+        MsgBox "範囲はグラフ内から選択してください", vbOKOnly + vbCritical, "範囲選択エラー"
+    End If
 End Sub
 
+
+'------------------------------------------------------------
+' 拳上げ・膝曲げの姿勢点強制修正処理
+'
+' 引数:
+'   postureScorebutton - 押されたボタンの点数（0/1:強制, -1:リセット, 99:除外）
+'------------------------------------------------------------
 Sub forceResult_Kobushiage(postureScorebutton As Integer)
-    '---------------------------------------------
-    'RGBを指定するための変数を定義
-    '---------------------------------------------
-    '信頼性
-    Dim colorMeasureSection    As String '水色
-    Dim colorPredictSection    As String '黄色
-    Dim colorMissingSection    As String 'ピンク
-    Dim colorForcedSection     As String '青色
-    Dim colorRemoveSection     As String 'グレー
 
-    '姿勢点
-    Dim colorResultGreen       As String '緑色
-    Dim colorResultYellow      As String '黄色
-    Dim colorResultRed         As String '赤色
-    Dim colorResultGlay        As String 'グレー
-    Dim colorResultWhite       As String '白色 20221219_下里
-    Dim colorResultBrown       As String '茶色 20221222_下里
-    Dim colorResultOFFGlay     As String 'グレー 20221222_下里
+    ' 色設定：信頼性
+    Dim colorMeasureSection As String
+    Dim colorPredictSection As String
+    Dim colorMissingSection As String
+    Dim colorForcedSection As String
+    Dim colorRemoveSection As String
 
-    '---------------------------------------------
-    '変数に色をセット
-    '---------------------------------------------
-    '1:測定、2:推定、3:欠損、4:強制、5:除外
-    '信頼性
-    colorMeasureSection = RGB(0, 176, 240)   '水色
-    colorPredictSection = RGB(252, 246, 0)   '黄色
-    colorMissingSection = RGB(255, 124, 128) 'ピンク
-    colorForcedSection = RGB(0, 51, 204)     '青色
-    colorRemoveSection = RGB(191, 191, 191)  'グレー
-    '姿勢点
-    colorResultGreen = RGB(0, 176, 80)       '緑色
-    colorResultYellow = RGB(255, 192, 0)     '黄色
-    colorResultRed = RGB(192, 0, 0)          '赤色
-    colorResultGlay = RGB(191, 191, 191)     'グレー
-    colorResultWhite = RGB(255, 255, 255)    '白色
-    colorResultBrown = RGB(64, 0, 0)         '茶色
-    colorResultOFFGlay = RGB(217, 217, 217)  '判定オフ用のグレー
+    ' 色設定：姿勢点
+    Dim colorResultGreen As String
+    Dim colorResultYellow As String
+    Dim colorResultRed As String
+    Dim colorResultGlay As String
+    Dim colorResultWhite As String
+    DIm colorResultBrown As String
+    Dim colorResultOFFGlay As String
 
-'    If DataAjsSht.activeCells <= 6 Then
-'        Exit Sub
-'    End If
-    Dim baseClm As Long
-    Dim shtPage As Long
-    shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
-    baseClm = LIMIT_COLUMN * shtPage
+    ' RGBの割り当て
+    colorMeasureSection = RGB(0, 176, 240)
+    colorPredictSection = RGB(252, 246, 0)
+    colorMissingSection = RGB(255, 124, 128)
+    colorForcedSection  = RGB(0, 51, 204)
+    colorRemoveSection  = RGB(191, 191, 191)
 
-    '選択範囲内のセル読み込み用　20221222_下里
-    Dim SelectCells  As Variant
-    Dim MaxRightCell As Variant
-    Dim MinLeftCell  As Variant
+    colorResultGreen    = RGB(0, 176, 80)
+    colorResultYellow   = RGB(255, 192, 0)
+    colorResultRed      = RGB(192, 0, 0)
+    colorResultGlay     = RGB(191, 191, 191)
+    colorResultWhite    = RGB(255, 255, 255)
+    colorResultBrown    = RGB(64, 0, 0)
+    colorResultOFFGlay  = RGB(217, 217, 217)
 
-    Dim lCol As Long
-    Dim rCol As Long
+    Dim baseClm As Long: baseClm = LIMIT_COLUMN * shtPage
 
-    '一時的にSelection.rowの価を保存しておく変数
-    Dim postur_row As Long
+    Dim lCol As Long, rCol As Long
+    Dim MinLeftCell As Variant, MaxRightCell As Variant
+    Dim k As Long, m As Long
 
-    '変数定義
-    Dim k As Long
-    Dim m As Long
-    '---------------------------------------------
-    'ここから強制処理
-    '---------------------------------------------
-'    With ThisWorkbook.Sheets("拳上腰曲げ膝曲げ修正シート")
-    With ThisWorkbook.ActiveSheet
-        '選択範囲がA～Eの行にあるか判定　20221222_下里
-        '+) 1行のみ選択されているか
-        '+) 選択範囲の左端がデータ最大値より小さいか
-        '2023/12/11 育成G修正（腰曲げ・膝曲げの行数は不要なので削除）
-        If CropSelectionToDataArea(lCol, rCol) Then
+    If CropSelectionToDataArea(lCol, rCol) Then
+        MinLeftCell = lCol
+        MaxRightCell = rCol
 
-            '選択範囲の左端と右端を取得
-            MinLeftCell = lCol
-            MaxRightCell = rCol
+        With ThisWorkbook.ActiveSheet
 
-            SelectCells = .Range( _
-            .Cells(Selection.row, Selection.Column), _
-            .Cells(Selection.row, Selection.Column + Selection.Columns.Count - 1) _
-            ).Value
+            ' 選択範囲の値取得（未使用）
+            Dim SelectCells As Variant
+            SelectCells = .Range(.Cells(Selection.Row, Selection.Column), _
+                                 .Cells(Selection.Row, Selection.Column + Selection.Columns.Count - 1)).Value
 
-            '戻る(Removeボタン)
+            ' リセット処理（戻るボタン）
             If postureScorebutton = -1 Then
-                Call postureUpdate_Kobushiage(MinLeftCell + baseClm, MaxRightCell + baseClm, 0, CInt(postureScorebutton))
-                '下が今まで戻るボタンを押したときにキックされるマクロ
-                Call paintPostureScore(1)
+                postureUpdate_Kobushiage MinLeftCell + baseClm, MaxRightCell + baseClm, 0, CInt(postureScorebutton)
+                paintPostureScore 1
 
-            '強制(0～１１の姿勢点ボタン)
+            ' 強制処理（0/1/99）
             ElseIf postureScorebutton >= 0 Then
-
-                Call postureUpdate_Kobushiage(MinLeftCell + baseClm, MaxRightCell + baseClm, 1, CInt(postureScorebutton))
+                postureUpdate_Kobushiage MinLeftCell + baseClm, MaxRightCell + baseClm, 1, CInt(postureScorebutton)
 
                 If postureScorebutton = 99 Then
-                    '除外を99に変更　20221219_下里
-                    '最初に背景塗りつぶし無しにしているので、処理をしない
-                    '信頼性のセルに除外の色を塗る
-                    .Range _
-                    ( _
-                        .Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                        .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell) _
-                    ) _
-                    .Interior.Color = colorRemoveSection
+                    ' 除外色適用
+                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
+                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorRemoveSection
 
                     For k = 1 To 3
-                        .Range _
-                        ( _
-                            .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MinLeftCell), _
-                            .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MaxRightCell) _
-                        ) _
-                        .Interior.Color = colorResultGlay
+                        .Range(.Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MinLeftCell), _
+                               .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MaxRightCell)).Interior.Color = colorResultGlay
                     Next
 
                 Else
-
-
-                    postur_row = Selection.row
-
-                    '===強制時、ほかの列の除外を解除し、除外だった場所に元のデータどおりに色を付けなおす処理===
-
+                    ' 除外状態だったセルを元の色に戻す
                     For m = MinLeftCell To MaxRightCell
                         If .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, m).Interior.Color = colorResultGlay Then
-                            Call paintPostureScore(m)
-                            'Debug.Print m
+                            paintPostureScore m
                         End If
                     Next
-                    '===========================================================================================
 
-                    '''''''''''''''''''''''''''''''''''''''''''''
-                    '▽拳上を一時的に除外
+                    ' 強制入力後の信頼性セル色塗り
+                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
+                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorForcedSection
 
-                    ''姿勢点のセルに押されたボタンの姿勢点
-                    '' 修正　20221219_下里
-                    ''1点の場合は赤
-                    ''2023/12/12 育成G修正 posturrow ⇒ ROW_POSTURE_SCORE_KOBUSHIAGE（拳上げ行以外の選択も可能に）
-                    ''2023/12/18 拳上げONの塗りつぶし色　brown ⇒ red
-                    'If postureScorebutton = 1 Then
-                    '    .Range _
-                    '    ( _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MinLeftCell), _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MaxRightCell) _
-                    '    ) _
-                    '    .Interior.Color = colorResultRed
-            '
-                    ''0点の場合は白
-                    ''2023/12/18 拳上げONの塗りつぶし色　Offgray ⇒ 0
-                    'ElseIf postureScorebutton = 0 Then
-                    '    .Range _
-                    '    ( _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MinLeftCell), _
-                    '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, MaxRightCell) _
-                    '    ) _
-                    '    .Interior.Color = colorResultWhite
-                    'End If
-                    '▽END_拳上を一時的に除外
+                    ' ※拳上げセルの色塗り処理は一時的に除外中
+                End If
 
-                    '信頼性のセルに強制色をぬる
-                    .Range _
-                    ( _
-                        .Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                        .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell) _
-                    ) _
-                    .Interior.Color = colorForcedSection
+                checkReliabilityRatio
+            End If
+        End With
+    Else
+        MsgBox "範囲はグラフ内から選択してください", vbOKOnly + vbCritical, "範囲選択エラー"
+    End If
 
-                End If 'If postureScorebutton <= 2 Then
-                '強制のときは単独で実行
-                Call checkReliabilityRatio
-            End If 'If postureScorebutton = -1 Then
-        Else
-            MsgBox "範囲はグラフ内から選択してください", vbOKOnly + vbCritical, "範囲選択エラー"
-        End If 'If Not (Selection.row = ROW_POSTURE_SCORE_KOBUSHIAGE Or
-    End With 'With ThisWorkbook.Sheets("拳上腰曲げ膝曲げ修正シート")
-
-    Call checkReliabilityRatio
+    checkReliabilityRatio
 End Sub
 
 'ポイント計算シートのフラグ変更
