@@ -1206,39 +1206,51 @@ Sub reliabilityUpdate_Kobushiage(row As Long, bit As Long, vle As Long, column_f
 End Sub
 
 
-'2023/12/12 育成G追記
-'元データ列へ挿入する
-'引数1：データを挿入するセルの行
-'引数2：戻るから呼ばれたら0、それ以外は1
+'------------------------------------------------------------
+' 拳上げ用の元データ列（姿勢スコア）を更新する処理
+'
+' 引数:
+'   row - データ対象の行番号（ポイント計算シート）
+'   bit - 処理種別（0:戻るでリセット, 1:強制）
+'------------------------------------------------------------
 Sub baseScore(row As Long, bit As Long)
     With ThisWorkbook.Sheets("ポイント計算シート")
         If bit = 1 Then
+            ' 強制入力時：元データが空なら、現スコアを記録
             If .Cells(row, COLUMN_BASE_SCORE).Value = "" Then
                 .Cells(row, COLUMN_BASE_SCORE).Value = .Cells(row, COLUMN_POSTURE_SCORE_ALL).Value
             End If
-
         Else
+            ' リセット時：保存していた元データをスコア列に復元
             .Cells(row, COLUMN_POSTURE_SCORE_ALL).Value = .Cells(row, COLUMN_BASE_SCORE).Value
         End If
     End With
 End Sub
+
 '『初期化』ボタンが押されたとき
 Sub reset()
     Call forceResult(-1)
 End Sub
 
+
 '姿勢点『0』強制ボタンが押されたとき
 Sub jogai()
     Call forceResult(99)
 End Sub
+
+
 '2023/12/11 育成G追記 拳上げ強制OFFボタンを押す
 Sub force_kobushi_OFF()
     Call forceResult_Kobushiage(0)
 End Sub
+
+
 '2023/12/11 育成G追記 拳上げ強制ONボタンを押す
 Sub force_kobushi_On()
     Call forceResult_Kobushiage(1)
 End Sub
+
+
 '姿勢点『1』強制ボタンが押されたとき
 Sub force1()
     Call forceResult(1)
@@ -1299,22 +1311,24 @@ Sub force10()
 End Sub
 
 
-'データ区間の割合を計算
+'------------------------------------------------------------
+' 信頼性の割合を計算し、修正シートへ反映する処理
+'
+' 背景:
+'   姿勢データにおける5種の区間（測定・推定・欠損・強制・除外）の割合を
+'   計算し、各修正シートにパーセンテージで出力する。
+'
+' 備考:
+'   RGB色は目視チェックや将来的な色変更に備えて定数化されている。
+'------------------------------------------------------------
 Sub checkReliabilityRatio()
-    '変数定義
-    Dim i              As Long
-    'フレームレート
-    Dim fps            As Double
-    'ポイント計算シート最終行
-    Dim maxRowNum      As Long
-    '修正シートの最終列
-    Dim ColumnNum      As Long
-    '配列の最終値
-    Dim maxArrayNum    As Long
-    '信頼性の番号
-    '1:測定、2:推定、3:欠損、4:強制、5:除外
-    Dim reliabilityFlag As Long
-    '信頼性の割合
+    ' 変数定義
+    Dim i                       As Long
+    Dim fps                     As Double
+    Dim maxRowNum               As Long
+    Dim ColumnNum               As Long
+    Dim maxArrayNum             As Long
+    Dim reliabilityFlag         As Long
     Dim measurementSectionRatio As Double
     Dim predictSectionRatio     As Double
     Dim missingSectionRatio     As Double
@@ -1322,165 +1336,102 @@ Sub checkReliabilityRatio()
     Dim exclusionSectionRatio   As Double
     Dim totalRatio              As Double
 
-    '配列定義
-    '色を保存する配列
-    Dim reliabilityColorDataArray()    As Long
-    '色をカウントする配列
-    '信頼性１～３のフレーム数をそれぞれ合計
-    '1:測定、2:推定、3:欠損、4:強制、5:除外
+    Dim reliabilityColorDataArray()     As Long
     Dim reliabilityColorCounterArray(5) As Long
 
-    '---------------------------------------------
-    'RGBを指定するための変数を定義
-    '---------------------------------------------
-    '信頼性
-    Dim colorMeasureSection    As String '水色
-    Dim colorPredictSection    As String '黄色
-    Dim colorMissingSection    As String 'ピンク
-    Dim colorForcedSection     As String '青色
-    Dim colorRemoveSection     As String 'グレー
+    ' 色定義（RGB）
+    Dim colorMeasureSection    As String: colorMeasureSection = RGB(0, 176, 240)
+    Dim colorPredictSection    As String: colorPredictSection = RGB(252, 246, 0)
+    Dim colorMissingSection    As String: colorMissingSection = RGB(255, 124, 128)
+    Dim colorForcedSection     As String: colorForcedSection = RGB(0, 51, 204)
+    Dim colorRemoveSection     As String: colorRemoveSection = RGB(191, 191, 191)
 
-    '---------------------------------------------
-    '変数に色をセット
-    '---------------------------------------------
-    '信頼性
-    colorMeasureSection = RGB(0, 176, 240)   '水色
-    colorPredictSection = RGB(252, 246, 0)   '黄色
-    colorMissingSection = RGB(255, 124, 128) 'ピンク
-    colorForcedSection = RGB(0, 51, 204)     '青色
-    colorRemoveSection = RGB(191, 191, 191)  'グレー
-
-    '---------------------------------------------
-    '変数・配列準備
-    '---------------------------------------------
+    ' ポイント計算シートからFPSと最終行を取得
     With ThisWorkbook.Sheets("ポイント計算シート")
-        'フレームレートを取得
         fps = .Cells(2, 199)
-        '最終行を取得
-        maxRowNum = .Cells(1, 3).End(xlDown).row
-    End With 'ThisWorkbook.Sheets("ポイント計算シート")
-
-    '調整用シート割合計算用
-    Dim sName()  As String
-    Dim n        As Long
-    Dim actSheet As Worksheet
-
-    '余分を消す
-    maxRowNum = maxRowNum - 1
-
-
-    '修正シートの色入力のある列数を調べる
-'    ColumnNum = Int(((maxRowNum - 1) / fps) / UNIT_TIME)
-
-
-    '一番右の列数を取得
-    With ThisWorkbook.Sheets("姿勢素点修正シート")
-        ColumnNum = Columns.Count - 6
+        maxRowNum = .Cells(1, 3).End(xlDown).Row
     End With
-    '最初の列数(6列まで)分を追加する
+
+    ' 修正シート列数を初期化（全体列 - ラベル列）
     ColumnNum = 16206
-
     maxArrayNum = ColumnNum - 1
-
-    '配列を再定義
     ReDim reliabilityColorDataArray(maxArrayNum, 0)
-
-    'カウンターを初期化
     Erase reliabilityColorCounterArray
 
-    '---------------------------------------------
-    'ここから信頼性の割合を計算
-    '---------------------------------------------
-
-    For i = 2 To maxRowNum + 1 '230208
-
+    ' 信頼性カウント処理
+    For i = 2 To maxRowNum + 1
         With ThisWorkbook.Sheets("ポイント計算シート")
-
-            '除外
-            If .Cells(i, COLUMN_REMOVE_SECTION).Value > 0 Then
-                reliabilityColorCounterArray(5) = reliabilityColorCounterArray(5) + 1
-                GoTo CONTINUE:
-            '強制
-            ElseIf .Cells(i, COLUMN_FORCED_SECTION).Value > 0 Then
-                reliabilityColorCounterArray(4) = reliabilityColorCounterArray(4) + 1
-                GoTo CONTINUE:
-            '欠損
-            ElseIf .Cells(i, COLUMN_MISSING_SECTION).Value > 0 Then
-                reliabilityColorCounterArray(3) = reliabilityColorCounterArray(3) + 1
-                GoTo CONTINUE:
-            '推定
-            ElseIf .Cells(i, COLUMN_PREDICT_SECTION).Value > 0 Then
-                reliabilityColorCounterArray(2) = reliabilityColorCounterArray(2) + 1
-                GoTo CONTINUE:
-            '測定
-            ElseIf .Cells(i, COLUMN_MEASURE_SECTION).Value > 0 Then
-                reliabilityColorCounterArray(1) = reliabilityColorCounterArray(1) + 1
-                GoTo CONTINUE:
-
-            End If
+            Select Case True
+                Case .Cells(i, COLUMN_REMOVE_SECTION).Value > 0
+                    reliabilityColorCounterArray(5) = reliabilityColorCounterArray(5) + 1
+                Case .Cells(i, COLUMN_FORCED_SECTION).Value > 0
+                    reliabilityColorCounterArray(4) = reliabilityColorCounterArray(4) + 1
+                Case .Cells(i, COLUMN_MISSING_SECTION).Value > 0
+                    reliabilityColorCounterArray(3) = reliabilityColorCounterArray(3) + 1
+                Case .Cells(i, COLUMN_PREDICT_SECTION).Value > 0
+                    reliabilityColorCounterArray(2) = reliabilityColorCounterArray(2) + 1
+                Case .Cells(i, COLUMN_MEASURE_SECTION).Value > 0
+                    reliabilityColorCounterArray(1) = reliabilityColorCounterArray(1) + 1
+            End Select
         End With
-
-CONTINUE:
     Next
 
-    '割合を計算
-    '推定
-    predictSectionRatio = reliabilityColorCounterArray(2) / maxRowNum * 100
-    '欠損
-    missingSectionRatio = reliabilityColorCounterArray(3) / maxRowNum * 100
-    '除外
-    exclusionSectionRatio = reliabilityColorCounterArray(5) / maxRowNum * 100
-    '測定
+    ' 各信頼性の割合を計算
+    predictSectionRatio     = reliabilityColorCounterArray(2) / maxRowNum * 100
+    missingSectionRatio     = reliabilityColorCounterArray(3) / maxRowNum * 100
+    exclusionSectionRatio   = reliabilityColorCounterArray(5) / maxRowNum * 100
     measurementSectionRatio = reliabilityColorCounterArray(1) / maxRowNum * 100
-    '強制
-    coercionSectionRatio = reliabilityColorCounterArray(4) / maxRowNum * 100
+    coercionSectionRatio    = reliabilityColorCounterArray(4) / maxRowNum * 100
 
-
+    ' 修正シートの一覧取得と結果反映
+    Dim sName() As String
+    Dim n As Long
+    Dim actSheet As Worksheet
     Set actSheet = ActiveSheet
-    sName() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
-    For n = 1 To UBound(sName)
-        '割合をセルに入力
-        With ThisWorkbook.Sheets(sName(n))
-            '測定
-            .Cells(3, 4) = Round(measurementSectionRatio, 1) & "%"
-            '強制
-            .Cells(4, 4) = Round(coercionSectionRatio, 1) & "%"
-            '除外
-            .Cells(5, 4) = Round(exclusionSectionRatio, 1) & "%"
-            '推定
-            .Cells(6, 4) = Round(predictSectionRatio, 1) & "%"
-            '欠損
-            .Cells(7, 4) = Round(missingSectionRatio, 1) & "%"
-            '測定+強制+除外
-            .Cells(3, 5) = Round(measurementSectionRatio + coercionSectionRatio + exclusionSectionRatio, 1) & "%"
-            '推定+欠損
-            .Cells(6, 5) = Round(predictSectionRatio + missingSectionRatio, 1) & "%"
+    sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
 
-        End With 'With ThisWorkbook.Sheets("修正シート")
+    For n = 1 To UBound(sName)
+        With ThisWorkbook.Sheets(sName(n))
+            .Cells(3, 4) = Round(measurementSectionRatio, 1) & "%" ' 測定
+            .Cells(4, 4) = Round(coercionSectionRatio, 1) & "%"    ' 強制
+            .Cells(5, 4) = Round(exclusionSectionRatio, 1) & "%"   ' 除外
+            .Cells(6, 4) = Round(predictSectionRatio, 1) & "%"     ' 推定
+            .Cells(7, 4) = Round(missingSectionRatio, 1) & "%"     ' 欠損
+            .Cells(3, 5) = Round(measurementSectionRatio + coercionSectionRatio + exclusionSectionRatio, 1) & "%"
+            .Cells(6, 5) = Round(predictSectionRatio + missingSectionRatio, 1) & "%"
+        End With
     Next
 End Sub
 
 
-'拡大ボタン、縮小ボタンが押されたときに実行される処理
-    '引数：expansionFlag As Long　幅の拡大or縮小を決める
-    'False：縮小　True:拡大
-
-    'コードの体裁整えていたら壊れたので初期状態に戻しています230213
+'------------------------------------------------------------
+' 幅調整処理（拡大・縮小）
+'
+' 概要:
+'   ボタン操作に応じて姿勢素点修正シートの列幅を拡大／縮小する。
+'
+' 引数:
+'   expansionFlag - 拡大/縮小のフラグ
+'     True  = 拡大
+'     False = 縮小
+'
+' 備考:
+'   初回呼び出し時に現在の幅サイズを基準として記録する。
+'------------------------------------------------------------
 Sub adjustWidth(expansionFlag As Boolean)
-    Dim columnWidth0 As Double
-    Const EXPANSION_RATIO As Long = 100
-    Static initFin As Boolean
-    Static wSize As widthSize
+    Const EXPANSION_RATIO As Long = 100  ' 未使用定数だが保持
+    Static initFin As Boolean            ' 初回呼び出しフラグ
+    Static wSize As widthSize           ' 現在の幅サイズ
 
+    ' 画面更新停止
     Call stopUpdate
-    '拡大・縮小どちらのフラグか確認（ボタンから引数受け取る）
-    '縮小ボタン
 
-    '初めて呼ばれた時だけ処理
-    If (initFin = False) Then
-        initFin = initFin + True
+    ' 初回のみ現在の列幅を取得してwSizeを初期化
+    If Not initFin Then
+        initFin = True
         Dim initSize As Long
-        initSize = DataAjsSht.GetWidthPoints
+        initSize = DataAjsSht.GetWidthPoints()
+
         Select Case initSize
             Case Is < widthSize.Medium
                 wSize = Small
@@ -1493,19 +1444,27 @@ Sub adjustWidth(expansionFlag As Boolean)
         End Select
     End If
 
+    ' フラグに応じて次のサイズへ移行
     wSize = sizeNext(wSize, expansionFlag)
 
+    ' シート一覧取得と処理実行
     Dim sName() As String
     Dim n As Long
     Dim actSheet As Worksheet
     Set actSheet = ActiveSheet
-    sName() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+
+    sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     For n = 1 To UBound(sName)
         Call DataAjsSht.SetCellsHW(CInt(wSize), ThisWorkbook.Sheets(sName(n)))
     Next
+
+    ' 元のシートへ戻す
     actSheet.Activate
+
+    ' 画面更新再開
     Call restartUpdate
 End Sub
+
 
 '『幅拡大』ボタンが押されたとき
 Sub expandWidth()
@@ -1523,13 +1482,13 @@ Sub reduceWidth()
 End Sub
 
 
-'１画面左へスクロール
+'1画面左へスクロール
 Sub scrollToLeftPage()
         ActiveWindow.LargeScroll ToLeft:=1
 End Sub
 
 
-'１画面右へスクロール
+'1画面右へスクロール
 Sub scrollToRightPage()
         If ActiveWindow.VisibleRange.Column + ActiveWindow.VisibleRange.Columns.Count <= _
         ActiveSheet.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column Then
@@ -1545,7 +1504,7 @@ Sub scrollToLeftEnd()
         If getPageShapeState(ActiveSheet, "prevPage") Then
             Call prevPage_Click
         Else
-             Call initCellPlace(ActiveSheet)
+            Call initCellPlace(ActiveSheet)
         End If
     Else
         Call initCellPlace(ActiveSheet)
@@ -1554,54 +1513,76 @@ Sub scrollToLeftEnd()
 End Sub
 
 
-'最も右へスクロール
+'------------------------------------------------------------
+' 右端スクロール処理
+'
+' 概要:
+'   姿勢素点修正シートの右端までスクロールする。
+'   すでに右端なら次ページへ移動（nextPageボタン相当）する。
+'
+' 備考:
+'   TIME_ROW：時刻行（列の終端判定に使用）
+'   getClm, getPageShapeState, finCellPlace は補助関数
+'------------------------------------------------------------
 Sub scrollToRightEnd()
-    '処理した時の一番右の列を覚えておく。
-    '同じ値で右に行くときは、次シートがあればそちらへ移行する。
     Dim keepColumn As Long
 
+    ' 右端に達しているかをチェック
     If getClm(ActiveSheet.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column) Then
+        ' ページ移動が可能なら次のページへ
         If getPageShapeState(ActiveSheet, "nextPage") Then
             Call nextPage_Click
         End If
     Else
-'        keepColumn = keepColumn * 0 + ActiveSheet.Cells(23, Columns.Count).End(xlToLeft).Column
-        '一番右へ
-    '    ActiveWindow.ScrollColumn = ThisWorkbook.Sheets("姿勢素点修正シート").Cells(23, Columns.Count).End(xlToLeft).Column + 1
-    '    MsgBox ThisWorkbook.Sheets("姿勢素点修正シート").Cells(23, Columns.Count).End(xlToLeft).Column + 29
-    '    ActiveWindow.Panes(2).ScrollColumn = ThisWorkbook.Sheets("姿勢素点修正シート").Cells(23, Columns.Count).End(xlToLeft).Column - 29
-        ActiveWindow.Panes(2).ScrollColumn = ActiveSheet.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column - 29
+        ' 現在の最右列を取得（※必要ならkeepColumnに保持可能）
+        keepColumn = ActiveSheet.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column
 
-        ActiveWindow.SmallScroll ToLeft:=ActiveWindow.Panes(2).VisibleRange.Cells.Columns.Count
-        '行き過ぎたぶん調整する
-        '1ページ左へ戻る
-    '    ActiveWindow.LargeScroll ToLeft:=1
+        ' スクロール位置を設定（見やすい位置まで29列戻す）
+        ActiveWindow.Panes(2).ScrollColumn = keepColumn - 29
 
-        '以下の分岐は今後はいらない可能性がある
-        '少し右へ
-        If ActiveSheet.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column = 16192 Then
+        ' 小スクロールでスクロール範囲を表示に収める
+        ActiveWindow.SmallScroll ToLeft:=ActiveWindow.Panes(2).VisibleRange.Columns.Count
+
+        ' 条件によって微調整
+        If keepColumn = 16192 Then
+            ' 特定列の場合は微調整（5列分右へ）
             ActiveWindow.SmallScroll ToRight:=5
         Else
-            '３秒分ずらす(=30fps * 3)
+            ' 通常は約3秒分（90列）スクロール
             ActiveWindow.SmallScroll ToRight:=90
         End If
 
+        ' カーソル・セル位置の最終調整
         Call finCellPlace(ActiveSheet)
-
     End If
 End Sub
 
-'現在のカラムを保持する
-Private Function getClm(clm As Long)
+
+'------------------------------------------------------------
+' 同じ列に対して連続でスクロール処理が呼ばれたかを判定する
+'
+' 引数:
+'   clm - 現在のカラム番号（列位置）
+'
+' 戻り値:
+'   True  - 直前のカラムと同じ（連続呼び出し）
+'   False - カラムが変わった（初回または位置変更）
+'
+' 備考:
+'   Static変数 keepColumn によって、前回呼び出し時の列位置を記憶する。
+'------------------------------------------------------------
+Private Function getClm(clm As Long) As Boolean
     Static keepColumn As Long
-    Dim ret As Boolean: ret = False
+    Dim isSameColumn As Boolean
+
     If keepColumn = clm Then
-'        keepColumn = -1
-        ret = True
+        isSameColumn = True
     Else
-        keepColumn = keepColumn * 0 + clm
+        keepColumn = clm
+        isSameColumn = False
     End If
-    getClm = ret
+
+    getClm = isSameColumn
 End Function
 
 
@@ -1624,106 +1605,137 @@ Sub fit()
 End Sub
 
 
-'再生ボタン
-'時刻選択のインターバル
+'------------------------------------------------------------
+' 再生ボタン処理
+'
+' 概要:
+'   姿勢素点修正シート上で再生ボタンが押された際に、
+'   時間カラムの自動選択処理を定期的に実行する。
+'
+' 引数:
+'   なし（グローバル変数 ResTime を使用して再帰的に呼び出される）
+'
+' 備考:
+'   - シートが「姿勢素点修正シート」でなければ再帰処理を停止する。
+'   - 再生ボタンの非表示処理を実行する。
+'------------------------------------------------------------
 Sub RegularInterval1()
-    Dim iend, i As Long
+    Dim iend As Long, i As Long
     Dim dajsht() As String
-    Dim l As Long
+    Dim currentColumn As Long
     Dim ws As Worksheet
     Set ws = ActiveSheet
 
-    dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+    ' 対象となる修正シート一覧を取得
+    dajsht = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
+
+    ' 全シートで再生ボタンを非表示にする
     For i = 1 To iend
         With Worksheets(dajsht(i))
             .Shapes("playBtn").Visible = False
         End With
     Next
 
-
-    l = ActiveCell.Column
-    If l < TIME_COLUMN_LEFT Then
+    ' カラム位置確認
+    currentColumn = ActiveCell.Column
+    If currentColumn < TIME_COLUMN_LEFT Then
         ActiveSheet.Cells(BOTTOM_OF_TABLE, TIME_COLUMN_LEFT).Select
-        '２秒から始まるように見えるため１秒待機する
+        ' 初期スタートに見せるため1秒待機
         Application.Wait Now() + TimeValue("00:00:01")
     End If
 
-    'activesheetでコピー先にも対応する
+    ' 次回実行時刻（1秒後）を設定
+    ResTime = Now + TimeValue("00:00:01")
 
-    '変数ResTimeに現在の1秒後の時刻を格納
-     ResTime = Now + TimeValue("00:00:01")
+    ' 自身を1秒後に再実行する設定
+    Application.OnTime EarliestTime:=ResTime, Procedure:="RegularInterval1"
 
-    'ApplicationオブジェクトのOnTimeメソッドを使用
-    'EarliestTime : 実行時刻(現時刻から1秒後）
-    'Procedure : 実行プロシージャ名。自分自身を指定して繰り返し処理
-     Application.OnTime EarliestTime:=ResTime, _
-     Procedure:="RegularInterval1"
-
-    '「TestSample1」プロシージャの呼び出し
-    ' Call nextTimeSelect
-    ' シートが「姿勢素点修正シート」なら処理継続、他のシートなら処理停止
-
+    ' シート名確認（姿勢素点修正シートのみ継続）
     If ActiveSheet.Name Like "姿勢素点修正シート*" Then
         Call nextTimeSelect
     Else
         Call Cancel1
     End If
-
 End Sub
 
 
-'時刻選択処理
+'------------------------------------------------------------
+' 時刻選択処理
+'
+' 概要:
+'   アクティブセルの次の時間セルへ移動し、
+'   時刻が表示されていなければ次シートへ遷移する。
+'
+' 引数:
+'   なし
+'
+' 備考:
+'   - アクティブセルの行はそのままで、右方向へ時刻を進める。
+'   - 時刻が存在しない場合は終了または次ページへ遷移。
+'------------------------------------------------------------
 Sub nextTimeSelect()
+    ' アクティブセルの位置に応じて処理を行う
 
-    'アクティブセルの一番左の列数を取得
-    '取得した列数の時刻(23行目）をアクティブにする
+    ' 選択中の列の時刻行 (23行目) に移動
     Cells(TIME_ROW, Selection.Column).Select
 
-    '一つ右のセルを選択
+    ' 一つ右のセル（次の時刻）に移動
     ActiveCell.Offset(0, 1).Select
 
-    '１秒分スクロール
+    ' 表示を1秒分右へスクロール（30fps × 1秒）
     ActiveWindow.SmallScroll ToRight:=TIME_WIDTH
 
-    '時刻が表示されていない時は、処理を変更する必要がある
+    ' 選択されたセルが空白なら処理継続 or 終了判定
     If IsEmpty(ActiveCell.Value) Then
-        'arrowが見えている時、すなわち次のシートが存在する。
         If getPageShapeState(ActiveSheet, "nextPage") Then
+            ' 次のページが存在すれば遷移
             Call nextPage_Click
-        Else '終端
+        Else
+            ' 時刻が存在せず、次ページもなければ処理終了
             Call Cancel1
         End If
     End If
-
-'    '信頼性、姿勢点、時刻を選択
-'    ActiveCell.Offset(-21, 0).Select
-'    Selection.Resize(22, 10).Select
-
 End Sub
 
-'停止ボタン
+
+'------------------------------------------------------------
+' 停止ボタン処理
+'
+' 概要:
+'   姿勢素点修正シート上で「停止ボタン」が押されたときに、
+'   再生の自動実行を止め、各シートの再生ボタンを再表示する。
+'
+' 引数:
+'   なし
+'
+' 備考:
+'   - 再生制御用の ResTime を用いて Application.OnTime を解除。
+'   - 姿勢素点修正シートすべての再生ボタンを再表示。
+'------------------------------------------------------------
 Sub Cancel1()
-    Dim iend, i As Long
+    Dim iend As Long, i As Long
     Dim dajsht() As String
 
-    dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+    ' 姿勢素点修正シート一覧を取得
+    dajsht = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
+
+    ' 各シートの再生ボタンを再表示
     For i = 1 To iend
         With Worksheets(dajsht(i))
             .Shapes("playBtn").Visible = True
         End With
     Next
 
-'RegularInterval1プロシージャの実行を中断させますので、
-'「Schedule」に「False」を指定します。
-
+    ' Application.OnTime を使ってタイマーを停止
+    On Error Resume Next
     Application.OnTime EarliestTime:=ResTime, _
-    Procedure:="RegularInterval1", Schedule:=False
-
-' MsgBox "再生を停止しました", vbInformation
-
+                       Procedure:="RegularInterval1", _
+                       Schedule:=False
+    On Error GoTo 0
 End Sub
+
 
 'メッセージボックスの表示
 '戻り値：メッセージボックス
@@ -1778,36 +1790,36 @@ Function calcSheetNamePlace(ws As Worksheet)
     calcSheetNamePlace = ret
 End Function
 
-'ブック左から検索
-'引数1：ワークブック
-'引数2：ワークシート名（姿勢素点修正シート）
-'戻り値：姿勢素点修正シートの名前を格納した配列
-Function call_GetSheetNameToArrayspecific(wb As Workbook, str As String)
 
+'------------------------------------------------------------
+' 対象名を含むワークシート名を配列として返す関数
+'
+' 概要:
+'   指定された名前を含むワークシートを左から順に検索し、
+'   一致したシート名を配列として返す。
+'
+' 引数:
+'   wb  : Workbook オブジェクト
+'   str : シート名に含まれる文字列（例: "姿勢素点修正シート"）
+'
+' 戻り値:
+'   一致したワークシート名の配列（String型）
+'------------------------------------------------------------
+Function call_GetSheetNameToArrayspecific(wb As Workbook, str As String) As String()
     Dim tmp() As String
     Dim ws As Worksheet
     Dim i As Long: i = 0
-    Dim istr As Long
-    Dim scnt As Long
-    scnt = wb.Worksheets.Count
+    Dim sheetCount As Long
+    sheetCount = wb.Worksheets.Count
 
-    For istr = 1 To scnt
-        Set ws = wb.Worksheets(istr)
+    ' 全ワークシートを走査して対象名を含むものを追加
+    For Each ws In wb.Worksheets
         If InStr(ws.Name, str) > 0 Then
             i = i + 1
             ReDim Preserve tmp(1 To i)
             tmp(i) = ws.Name
         End If
     Next
-
-'    For Each ws In wb.Worksheets
-'        '■シート名がstrを含めば配列に格納
-'        If InStr(ws.Name, str) > 0 Then
-'            i = i + 1
-'            ReDim Preserve tmp(1 To i)
-'            tmp(i) = ws.Name
-'        End If
-'    Next ws
 
     call_GetSheetNameToArrayspecific = tmp
 End Function
@@ -1834,6 +1846,7 @@ Private Sub addPageShape(ws As Worksheet, pPageState As Boolean, nPageState As B
     ws.Shapes(nCover).Visible = Not nPageState
 End Sub
 
+
 '図形がVisibleかどうか判定する
 '引数1：ワークシート
 '引数2：図形の名前
@@ -1842,57 +1855,62 @@ Private Function getPageShapeState(ws As Worksheet, shapeName As String)
     getPageShapeState = ws.Shapes(shapeName).Visible
 End Function
 
-'ワークシートをコピーし、右に挿入
-Sub createSheet(dupCount As Long)
 
+'------------------------------------------------------------
+' 姿勢素点修正シートを右隣に複製する処理
+'
+' 引数:
+'   dupCount : 複製対象のインデックス（0の場合はオリジナル名）
+'
+' 備考:
+'   - 既にシートが存在する場合は再帰的にインデックスを増加
+'   - s_Master_2nd シートを複製し、名前を設定
+------------------------------------------------------------
+Sub createSheet(dupCount As Long)
     Dim ws As Worksheet
-    Dim dupflag As Boolean
+    Dim dupFlag As Boolean
     Dim wsName As String
 
     wsName = "姿勢素点修正シート"
+    dupFlag = False
 
+    ' シートの重複確認
     For Each ws In Worksheets
-    'シート検索
-
         If dupCount = 0 Then
-            If ws.Name = wsName Then dupflag = True
+            If ws.Name = wsName Then dupFlag = True
         Else
-            If ws.Name = wsName + " (" + Replace(str(dupCount), " ", "") + ")" Then dupflag = True
+            If ws.Name = wsName & " (" & Replace(CStr(dupCount), " ", "") & ")" Then dupFlag = True
         End If
-
     Next ws
 
-    If dupflag = True Then
-    'シートが存在するため再起する
-        createSheet (dupCount + 1)
-
+    ' 重複していたら再帰的に次の番号で作成を試みる
+    If dupFlag Then
+        Call createSheet(dupCount + 1)
     Else
-    'シートが存在しない場合
-
         On Error GoTo ErrLabel
-        If dupCount = 0 Then
-            s_Master_2nd.Visible = True
-            s_Master_2nd.Copy After:=Worksheets(s_Graph_2nd.Name)
-            ActiveSheet.Name = wsName
-        ElseIf dupCount = 1 Then
-            s_Master_2nd.Visible = True
-            s_Master_2nd.Copy After:=Worksheets(wsName)
-            ActiveSheet.Name = wsName + " (" + Replace(str(dupCount), " ", "") + ")"
-        Else
-            s_Master_2nd.Visible = True
-            s_Master_2nd.Copy After:=Worksheets(wsName + " (" + Replace(str(dupCount - 1), " ", "") + ")")
-            ActiveSheet.Name = wsName + " (" + Replace(str(dupCount), " ", "") + ")"
-        End If
+        ' シートの複製とリネーム処理
+        s_Master_2nd.Visible = True
+        Select Case dupCount
+            Case 0
+                s_Master_2nd.Copy After:=Worksheets(s_Graph_2nd.Name)
+                ActiveSheet.Name = wsName
+            Case 1
+                s_Master_2nd.Copy After:=Worksheets(wsName)
+                ActiveSheet.Name = wsName & " (" & Replace(CStr(dupCount), " ", "") & ")"
+            Case Else
+                s_Master_2nd.Copy After:=Worksheets(wsName & " (" & Replace(CStr(dupCount - 1), " ", "") & ")")
+                ActiveSheet.Name = wsName & " (" & Replace(CStr(dupCount), " ", "") & ")"
+        End Select
 
         s_Master_2nd.Visible = xlSheetVeryHidden
-
     End If
 
-Exit Sub
+    Exit Sub
 
 ErrLabel:
-    MsgBox "存在しないシートです"
+    MsgBox "存在しないシートです", vbCritical
 End Sub
+
 
 'ワークシートを消去
 Sub DeleteSheet(dupCount As Long)
@@ -1942,6 +1960,7 @@ Sub prevPage_Click()
     Call finCellPlace(ThisWorkbook.ActiveSheet)
 End Sub
 
+
 'ひとつ次のシートをアクティブにし、データの最初に行く
 Sub nextPage_Click()
     ThisWorkbook.ActiveSheet.Next.Activate
@@ -1954,137 +1973,190 @@ Private Sub initCellPlace(ws As Worksheet)
     ws.Cells(TIME_ROW, TIME_COLUMN_LEFT).Select
 End Sub
 
+
 'セルの最終位置
 Private Sub finCellPlace(ws As Worksheet)
     ws.Cells(TIME_ROW, ws.Cells(TIME_ROW, Columns.Count).End(xlToLeft).Column).Select
 End Sub
 
-'段階的にサイズの変更処理をする為の関数
-'引数1：画面の拡大率
-'引数2：サイズを変更できるかどうか
-'戻り値：Small = 1
-'        Medium = 2
-'        Large = 4
-'        LL = 6
-Private Function sizeNext(wSize As widthSize, nextChange As Boolean)
-    Dim tmpsize As widthSize
+
+'------------------------------------------------------------
+' サイズ切り替えロジック
+'
+' 引数:
+'   wSize       : 現在のサイズ（Small, Medium, Large, LL）
+'   nextChange  : True なら次のサイズへ拡大、False なら縮小
+'
+' 戻り値:
+'   次に設定すべきサイズ（Small = 1, Medium = 2, Large = 4, LL = 6）
+'------------------------------------------------------------
+Private Function sizeNext(wSize As widthSize, nextChange As Boolean) As widthSize
+    Dim tmpSize As widthSize
 
     Select Case wSize
         Case widthSize.Small
             If nextChange Then
-                tmpsize = widthSize.Medium
+                tmpSize = widthSize.Medium
                 Call changeBtnState(REDUCEBTN_NAME, True)
             Else
-                tmpsize = widthSize.Small
+                tmpSize = widthSize.Small
                 Call changeBtnState(EXPANDBTN_NAME, True)
-'                ベースファイルの保存が悪かった時用
+                ' ベースファイルの保存が悪かった時用の保険処理
                 Call changeBtnState(REDUCEBTN_NAME, False)
-
             End If
+
         Case widthSize.Medium
             If nextChange Then
-                tmpsize = widthSize.Large
+                tmpSize = widthSize.Large
             Else
-                tmpsize = widthSize.Small
+                tmpSize = widthSize.Small
                 Call changeBtnState(EXPANDBTN_NAME, True)
                 Call changeBtnState(REDUCEBTN_NAME, False)
             End If
+
         Case widthSize.Large
             If nextChange Then
-                tmpsize = widthSize.LL
+                tmpSize = widthSize.LL
                 Call changeBtnState(EXPANDBTN_NAME, False)
                 Call changeBtnState(REDUCEBTN_NAME, True)
             Else
-                tmpsize = widthSize.Medium
+                tmpSize = widthSize.Medium
             End If
+
         Case widthSize.LL
-            '前にならないとき
             If Not nextChange Then
-                tmpsize = widthSize.Large
+                tmpSize = widthSize.Large
                 Call changeBtnState(EXPANDBTN_NAME, True)
             Else
-                tmpsize = widthSize.LL
+                tmpSize = widthSize.LL
                 Call changeBtnState(REDUCEBTN_NAME, True)
-'                ベースファイルの保存が悪かった時用
+                ' ベースファイルの保存が悪かった時用の保険処理
                 Call changeBtnState(EXPANDBTN_NAME, False)
             End If
     End Select
-    sizeNext = tmpsize
+
+    sizeNext = tmpSize
 End Function
 
-Sub doNothing_btn()
-    'なにもしない
-End Sub
 
-'幅調整用のボタンに使う予定。実際名前さえ決めることができればなんとでもなる。
-
-'引数1：ボタンの名前（EXPANDBTN_NAME or REDUCEBTN_NAME）
-'引数2：ボタンを押せるかどうか
+'------------------------------------------------------------
+' ボタンの状態を変更する処理
+'
+' 引数:
+'   btnName  : ボタンの名前（EXPANDBTN_NAME または REDUCEBTN_NAME）
+'   btnstate : True で表示、False で非表示
+'------------------------------------------------------------
 Private Sub changeBtnState(btnName As String, btnstate As Boolean)
-    Dim iend, i As Long
+    Dim iend As Long
+    Dim i As Long
     Dim dajsht() As String
 
+    ' 姿勢素点修正シートの一覧を取得
     dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
+
+    ' 各シートの対象ボタンの状態を変更
     For i = 1 To iend
         With Worksheets(dajsht(i))
             .Shapes(btnName).Visible = btnstate
         End With
-    Next
+    Next i
 End Sub
 
-'シートをリセットする
+
+'------------------------------------------------------------
+' ボタンの状態を変更する処理
+'
+' 引数:
+'   btnName  : ボタンの名前（EXPANDBTN_NAME または REDUCEBTN_NAME）
+'   btnstate : True で表示、False で非表示
+'------------------------------------------------------------
+Private Sub changeBtnState(btnName As String, btnstate As Boolean)
+    Dim iend As Long
+    Dim i As Long
+    Dim dajsht() As String
+
+    ' 姿勢素点修正シートの一覧を取得
+    dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+    iend = UBound(dajsht)
+
+    ' 各シートの対象ボタンの状態を変更
+    For i = 1 To iend
+        With Worksheets(dajsht(i))
+            .Shapes(btnName).Visible = btnstate
+        End With
+    Next i
+End Sub
+
+'------------------------------------------------------------
+' シートを初期状態にリセットする処理
+' ・拡大・縮小ボタンを表示
+' ・ページ切替ボタンを非表示
+' ・背景色と罫線をクリア
+' ・一部範囲の内容をクリア
+'------------------------------------------------------------
 Sub resetSheet()
     Const pPage As String = "prevPage"
     Const nPage As String = "nextPage"
-    Dim iend, i As Long
+    Dim iend As Long
+    Dim i As Long
     Dim dajsht() As String
+
+    ' 姿勢素点修正シートの一覧を取得
     dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
+
+    ' 各シートに対して初期化処理を実行
     For i = 1 To iend
         With Worksheets(dajsht(i))
-            '全て隠す
+            ' ボタン表示制御
             .Shapes(EXPANDBTN_NAME).Visible = True
             .Shapes(REDUCEBTN_NAME).Visible = True
             .Shapes(pPage).Visible = False
             .Shapes(nPage).Visible = False
+
+            ' 背景色クリア
+            .Range("G2:G25").Select
+            .Range(Selection, Selection.End(xlToRight)).Select
+            With Selection.Interior
+                .Pattern = xlNone
+                .TintAndShade = 0
+                .PatternTintAndShade = 0
+            End With
+
+            ' 罫線クリア
+            .Range("FN2:FN25").Select
+            .Range(Selection, Selection.End(xlToRight)).Select
+            With Selection.Borders
+                .LineStyle = xlNone
+            End With
+
+            ' データクリア
+            .Range("G24:XFD25").Select
+            Selection.ClearContents
         End With
-        Worksheets(dajsht(i)).Range("G2:G25").Select
-        Worksheets(dajsht(i)).Range(Selection, Selection.End(xlToRight)).Select
-        With Selection.Interior
-            .Pattern = xlNone
-            .TintAndShade = 0
-            .PatternTintAndShade = 0
-        End With
-
-        Worksheets(dajsht(i)).Range("FN2:FN25").Select
-        Worksheets(dajsht(i)).Range(Selection, Selection.End(xlToRight)).Select
-        Selection.Borders(xlDiagonalDown).LineStyle = xlNone
-        Selection.Borders(xlDiagonalUp).LineStyle = xlNone
-        Selection.Borders(xlEdgeLeft).LineStyle = xlNone
-        Selection.Borders(xlEdgeTop).LineStyle = xlNone
-        Selection.Borders(xlEdgeBottom).LineStyle = xlNone
-        Selection.Borders(xlEdgeRight).LineStyle = xlNone
-        Selection.Borders(xlInsideVertical).LineStyle = xlNone
-        Selection.Borders(xlInsideHorizontal).LineStyle = xlNone
-
-        Worksheets(dajsht(i)).Range("G24:XFD25").Select
-        Selection.ClearContents
-    Next
-
+    Next i
 End Sub
 
 
-'非表示の名前の定義を再表示　20230215　早川　シートコピー時に発生するエラー対策
+'------------------------------------------------------------
+' 非表示の「名前の定義」を再表示するマクロ
+' （例：シートコピー後のエラー対策）
+' 実行後、対象の名前をユーザーに通知
+'------------------------------------------------------------
 Public Sub ShowInvisibleNames()
-    Dim oName As Object
+    Dim oName As Name
+
+    ' ワークブック内すべての名前をチェック
     For Each oName In Names
         If oName.Visible = False Then
             oName.Visible = True
         End If
     Next
+
     MsgBox "非表示の名前の定義を表示しました。", vbOKOnly
 End Sub
+
 
 ' 選択範囲をデータ有効域と交差させる
 ' 戻り値 : True → 交差あり（ leftCol/rightCol が返る ）
