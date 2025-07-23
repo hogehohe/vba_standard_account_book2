@@ -291,209 +291,451 @@ Private Sub autoFillTime(ws As Worksheet, min As Long, endclm As Long)
 End Sub
 
 
-'------------------------------------------------------------
-' 姿勢素点修正シート：姿勢点と信頼性のスコアを分析し、セルに色を塗る
-'
-' processingRange:
-'   1 → 選択範囲（部分的キャンセル）
-'   2 → 全体
-'   その他 → 特定1セルのみ
-'------------------------------------------------------------
+
+'単位時間当たり最も多い姿勢点・信頼性を調べてセルに色を塗る
+'processingRange　1:選択範囲（部分的に強制をキャンセル） 2:全体 else:特定の1セルごと
 Sub paintPostureScore(processingRange As Long)
+    '---------------------------------------------
+    'RGBを指定するための変数を定義
+    '---------------------------------------------
 
-    '------------------------------------------------------------
-    ' 色設定：信頼性
-    '------------------------------------------------------------
-    Dim colorMeasureSection    As String ' 測定（青）
-    Dim colorPredictSection    As String ' 推定（黄）
-    Dim colorMissingSection    As String ' 欠損（ピンク）
-    Dim colorForcedSection     As String ' 強制（濃青）
-    Dim colorRemoveSection     As String ' 除外（グレー）
+    '信頼性
+    Dim colorMeasureSection    As String '水色
+    Dim colorPredictSection    As String '黄色
+    Dim colorMissingSection    As String 'ピンク
+    Dim colorForcedSection     As String '青色
+    Dim colorRemoveSection     As String 'グレー
 
-    ' 色設定：姿勢点
-    Dim colorResultGreen       As String ' 緑
-    Dim colorResultYellow      As String ' 黄
-    Dim colorResultRed         As String ' 赤
-    Dim colorResultGlay        As String ' グレー
-    Dim colorResultWhite       As String ' 白
-    Dim colorResultBrown       As String ' 茶
-    Dim colorResultOFFGlay     As String ' 判定OFF用グレー
+    '姿勢点
+    Dim colorResultGreen       As String '緑色
+    Dim colorResultYellow      As String '黄色
+    Dim colorResultRed         As String '赤色
+    Dim colorResultGlay        As String 'グレー
+    Dim colorResultWhite       As String '白色 20221219_下里
+    Dim colorResultBrown       As String '茶色 20221222_下里
+    Dim colorResultOFFGlay     As String 'グレー 20221222_下里
 
-    ' 色の定義（RGB）
-    colorMeasureSection = RGB(0, 176, 240)
-    colorPredictSection = RGB(252, 246, 0)
-    colorMissingSection = RGB(255, 124, 128)
-    colorForcedSection  = RGB(0, 51, 204)
-    colorRemoveSection  = RGB(191, 191, 191)
+    '---------------------------------------------
+    '変数に色をセット
+    '---------------------------------------------
+    '1:測定、2:推定、3:欠損、4:強制、5:除外
+    '信頼性
+    colorMeasureSection = RGB(0, 176, 240)   '水色
+    colorPredictSection = RGB(252, 246, 0)   '黄色
+    colorMissingSection = RGB(255, 124, 128) 'ピンク
+    colorForcedSection = RGB(0, 51, 204)     '青色
+    colorRemoveSection = RGB(191, 191, 191)  'グレー
+    '姿勢点
+    colorResultGreen = RGB(0, 176, 80)       '緑色
+    colorResultYellow = RGB(255, 192, 0)     '黄色
+    colorResultRed = RGB(192, 0, 0)          '赤色
+    colorResultGlay = RGB(191, 191, 191)     'グレー
+    colorResultWhite = RGB(255, 255, 255)    '白色
+    colorResultBrown = RGB(64, 0, 0)         '茶色
+    colorResultOFFGlay = RGB(217, 217, 217)  '判定オフ用のグレー
 
-    colorResultGreen    = RGB(0, 176, 80)
-    colorResultYellow   = RGB(255, 192, 0)
-    colorResultRed      = RGB(192, 0, 0)
-    colorResultGlay     = RGB(191, 191, 191)
-    colorResultWhite    = RGB(255, 255, 255)
-    colorResultBrown    = RGB(64, 0, 0)
-    colorResultOFFGlay  = RGB(217, 217, 217)
 
-    '------------------------------------------------------------
-    ' データ格納用配列とカウンター
-    '------------------------------------------------------------
-    Dim postureScoreDataArray()             As Long
-    Dim postureScoreDataArray_A()           As Long
-    Dim postureScoreCounterArray(11)        As Long
-    Dim postureScoreCounterArray_A(0 To 1)  As Integer
-    Dim reliabilityDataArray()              As Long
-    Dim reliabilityCounterArray(3)          As Long
+    '---------------------------------------------
+    '配列
+    '---------------------------------------------
+    'ポイント計算シートの姿勢点を保管
+    Dim postureScoreDataArray()           As Long
+    '2023/12/11　育成G小杉追記-------------
+    Dim postureScoreDataArray_A()  As Long
+    '１～１１点のフレーム数をそれぞれ合計
+    Dim postureScoreCounterArray(11)      As Long
+    ' 2023/12/11　育成G小杉追記 拳上げ点数--
+    Dim postureScoreCounterArray_A(0 To 1) As Integer
+    '---------------------------------------
 
-    '------------------------------------------------------------
-    ' 汎用・補助変数
-    '------------------------------------------------------------
-    Dim RowNumCount             As Long
-    Dim maxRowNum               As Long
-    Dim wholeStartCount         As Long
-    Dim fps                     As Double
-    Dim PointComp0              As Long
-    Dim PointComp1              As Long
-    Dim PointComp2              As Long
-    Dim wholeStart              As Long
-    Dim wholeEnd                As Long
-    Dim postureScoreFlag        As Long
+    'ポイント計算シートの信頼性を保管
+    '1:測定、2:推定、3:欠損
+    Dim reliabilityDataArray()     As Long
+    '信頼性１～３のフレーム数をそれぞれ合計
+    Dim reliabilityCounterArray(3) As Long
+
+    '---------------------------------------------
+    'その他の変数
+    '---------------------------------------------
+    'ポイント計算シート最大行数の変数定義
+    Dim RowNumCount As Long
+    Dim maxRowNum      As Long
+
+    '変数定義
+    Dim wholeStartCount As Long
+    Dim PointComp0       As Long
+    Dim PointComp1       As Long
+    Dim PointComp2      As Long
+
+    Dim fps        As Double
+
+    '単位時間の繰り返し処理の開始終了地点を定義
+    Dim wholeStart As Long
+    Dim wholeEnd   As Long
+
+    '姿勢点一時記憶用の変数
+    Dim postureScoreFlag      As Long
+    ' 2023/12/11　育成G小杉追記--
     Dim postureScoreFlag_A      As Integer
-    Dim mostOftenPostureScore   As Long
+    '---------------------------------------
+    '単位時間の中で一番多い姿勢点を保管
+    Dim mostOftenPostureScore As Long
+    ' 2023/12/11　育成G小杉追記 拳上げ点数--
     Dim mostOftenPostureScore_A As Integer
-    Dim reliabilityFlag         As Long
-    Dim mostOftenReliability    As Long
-    Dim preClm                  As Long: preClm = 0
+    '---------------------------------------
+    '信頼性一時記憶用の変数
+    Dim reliabilityFlag       As Long
+    '単位時間の中で一番多い信頼性を保管
+    Dim mostOftenReliability  As Long
 
+    '次ページにいく制限
+    Dim thisPageLimit As Long
+    thisPageLimit = LIMIT_COLUMN
+    '前のページの最終列を保存する
+    Dim preClm As Long
+    preClm = 0
     Call stopUpdate
 
-    '------------------------------------------------------------
-    ' ポイント計算シートからデータ読み込み
-    '------------------------------------------------------------
+    Dim baseClm As Long
+    Dim shtPage As Long
+
+    '動画時間(秒)により列の初期幅を変更する
+
+    Dim wSize     As widthSize
+        '---------------------------------------------
+    '変数、配列に値を入力
+    '---------------------------------------------
     With ThisWorkbook.Sheets("ポイント計算シート")
-        maxRowNum = .Cells(1, 3).End(xlDown).Row - 1
+        '最終行を取得
+        maxRowNum = .Cells(1, 3).End(xlDown).row
+        '配列の最後尾
+'        余分を削除
+        maxRowNum = maxRowNum - 1
+        '配列を再定義
         ReDim postureScoreDataArray(maxRowNum, 0)
-        ReDim postureScoreDataArray_A(maxRowNum, 0)
+        '2023/12/11　育成G小杉追記-------------
+        ReDim postureScoreDataArray_A(maxRowNum, 0) As Long
+        '--------------------------------------
+        '信頼性区間用
         ReDim reliabilityDataArray(maxRowNum, 0)
 
+        '配列の中に値を入れる
         For RowNumCount = 1 To maxRowNum
+'        For i = 1 To 10
+            '姿勢点の列を配列に入れる
+            '配列は0から始まるため+1、2行目から使用するため+1
             postureScoreDataArray(RowNumCount - 1, 0) = .Cells(RowNumCount + 1, COLUMN_DATA_RESULT_ORIGIN).Value
+            ' 2023/12/11育成G小杉追記 オリジナル拳上げデータ参照----------
             postureScoreDataArray_A(RowNumCount - 1, 0) = .Cells(RowNumCount + 1, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
-            If .Cells(RowNumCount + 1, COLUMN_MEASURE_SECTION).Value > 0 Then reliabilityDataArray(RowNumCount, 0) = 1
-            If .Cells(RowNumCount + 1, COLUMN_PREDICT_SECTION).Value > 0 Then reliabilityDataArray(RowNumCount, 0) = 2
-            If .Cells(RowNumCount + 1, COLUMN_MISSING_SECTION).Value > 0 Then reliabilityDataArray(RowNumCount, 0) = 3
+            '----------------------------------
+            '信頼性を配列に入れる
+            '1:測定、2:推定、3:欠損
+
+            If .Cells(RowNumCount + 1, COLUMN_MEASURE_SECTION).Value > 0 Then
+                reliabilityDataArray(RowNumCount, 0) = 1
+            End If
+            If .Cells(RowNumCount + 1, COLUMN_PREDICT_SECTION).Value > 0 Then
+                reliabilityDataArray(RowNumCount, 0) = 2
+            End If
+            If .Cells(RowNumCount + 1, COLUMN_MISSING_SECTION).Value > 0 Then
+                reliabilityDataArray(RowNumCount, 0) = 3
+            End If
         Next
-
+        'フレームレートを取得
         fps = .Cells(2, 199).Value
-    End With
+        Dim video_sec As Double: video_sec = wholeEnd / fps
 
-    '------------------------------------------------------------
-    ' 処理対象範囲の決定（processingRangeによる分岐）
-    '------------------------------------------------------------
-    '（省略、元コードをリファクタリング済み全文に組み込み）
-    '------------------------------------------------------------
-    ' 処理ループ：各フレームごとにスコア集計とセル塗りつぶし
-    '------------------------------------------------------------
+    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+
+
+    '---------------------------------------------
+    '処理範囲を決める
+    '---------------------------------------------
+    'キャンセル(戻る)ボタンから呼ばれたとき
+
+
+    If processingRange = 1 Then
+        'アクティブセルの一番左が6列目以下の時
+        'エラーメッセージを出して処理をやめる
+
+        shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
+        baseClm = LIMIT_COLUMN * shtPage
+
+
+        'pageLimitを次のページとなる閾値まで更新
+        thisPageLimit = (shtPage + 1) * LIMIT_COLUMN
+        preClm = (LIMIT_COLUMN * shtPage) * -1
+
+        Dim lCol As Long, rCol As Long
+        If Not CropSelectionToDataArea(lCol, rCol) Then
+            MsgBox "範囲外です", vbCritical
+            Exit Sub
+        End If
+
+        wholeStart = lCol - COLUMN_ZERO_NUM + baseClm
+        wholeEnd = rCol - COLUMN_ZERO_NUM + baseClm
+
+        If wholeStart < 1 Then
+            wholeStart = 1
+        End If
+
+    'メインの処理から呼ばれたとき
+    ElseIf processingRange = 2 Then
+
+        'すでに計算シートがあるとテスト用関数からcreateSheetすると増殖するため
+        Call DeleteSheet(0)
+        Call createSheet(0)
+
+        '先頭から
+        wholeStart = 1
+        '末尾まで
+        wholeEnd = maxRowNum
+
+        '基準のworkSheet、合わせて初期化
+        ThisWorkbook.Sheets("姿勢素点修正シート").Activate
+        preClm = 0
+
+        '動画が短いとオートフィルでエラーが出るため、エラー処理を追加20231004早川
+        If maxRowNum >= 150 Then
+            Call autoFillLine(ActiveSheet, wholeEnd + COLUMN_ZERO_NUM) '230206 + COLUMN_ZERO_NUMを追加
+            Call autoFillTime(Worksheets("姿勢素点修正シート"), 0, wholeEnd)
+        End If
+
+        Call addPageShape(ActiveSheet, False, True)
+
+        '15秒以下を列幅2とする
+        If video_sec <= 15 Then
+            wSize = LL
+            Call changeBtnState(EXPANDBTN_NAME, False)
+            Call changeBtnState(REDUCEBTN_NAME, True)
+        Else
+            wSize = Small
+            Call changeBtnState(REDUCEBTN_NAME, False)
+            Call changeBtnState(EXPANDBTN_NAME, True)
+        End If
+
+        Call DataAjsSht.SetCellsHW(CInt(wSize), Worksheets("姿勢素点修正シート"))
+
+    '除外があるフレームに強制を上書きしたとき（１セルずつ実行）
+    Else
+        shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
+        baseClm = LIMIT_COLUMN * shtPage
+
+
+        'pageLimitを次のページとなる閾値まで更新
+        thisPageLimit = (shtPage + 1) * LIMIT_COLUMN
+        preClm = (LIMIT_COLUMN * shtPage) * -1
+
+        '20230126_下里
+        '選択範囲が6列以内の場合、データの左端になるように修正
+'        If Selection.Column <= COLUMN_ZERO_NUM Then
+'            wholeStart = 1
+'        Else
+        wholeStart = processingRange - COLUMN_ZERO_NUM + baseClm
+'        End If
+        '
+        wholeEnd = wholeStart
+    End If
+
     For wholeStartCount = wholeStart To wholeEnd
-        ' カウンター初期化
+        '姿勢点のカウンターをリセット
         Erase postureScoreCounterArray
+        '2023/12/11　育成G小杉追記 -----------
         Erase postureScoreCounterArray_A
+        '-------------------------------------
+        '信頼性のカウンターをリセット
         Erase reliabilityCounterArray
 
-        ' 現在フレームのスコアを配列から取得
+        '姿勢点を確認
         postureScoreFlag = postureScoreDataArray(wholeStartCount - 1, 0)
+        '2023/12/11　育成G小杉追記 -----------
         postureScoreFlag_A = postureScoreDataArray_A(wholeStartCount - 1, 0)
-        reliabilityFlag = reliabilityDataArray(wholeStartCount, 0)
-
+        '-------------------------------------
+        '姿勢点フラグを立てる
         postureScoreCounterArray(postureScoreFlag) = 1
+        '2023/12/11　育成G小杉追記 -----------
         postureScoreCounterArray_A(postureScoreFlag_A) = 1
+        '-------------------------------------
+        '信頼性を確認
+'        reliabilityFlag = reliabilityDataArray(i - 1, 0)230209
+        reliabilityFlag = reliabilityDataArray(wholeStartCount, 0)
+        '信頼性フラグを立てる
         reliabilityCounterArray(reliabilityFlag) = 1
 
-        ' 最頻姿勢点（通常）を決定
+
+
+        '---------------------------------------------
+        'フレーム数が最も多いものを探す
+        '---------------------------------------------
+        '初期は1
         mostOftenPostureScore = 1
+
+        '姿勢点1～10の先頭から順に比較
         For PointComp0 = 2 To 10
+            'フレーム数の合計が多い姿勢点を選ぶ
+            '合計が同じ場合は辛い姿勢を優先する
             If postureScoreCounterArray(mostOftenPostureScore) <= postureScoreCounterArray(PointComp0) Then
                 mostOftenPostureScore = PointComp0
             End If
         Next
 
-        ' 最頻拳上姿勢点を決定
-        mostOftenPostureScore_A = 0
+        '2023/12/11　育成G小杉追記 拳上げ箇所追加-----------
+         '姿勢点0～1の先頭から順に比較
         For PointComp1 = 0 To 1
+            'フレーム数の合計が多い姿勢点を選ぶ
+            '合計が同じ場合は辛い姿勢を優先する
+
+            '拳上げ
             If postureScoreCounterArray_A(mostOftenPostureScore_A) <= postureScoreCounterArray_A(PointComp1) Then
-                mostOftenPostureScore_A = PointComp1
+                 mostOftenPostureScore_A = PointComp1
             End If
         Next
+        '--------------------------------------------------
 
-        ' 最頻信頼性を決定
+        '初期は1
         mostOftenReliability = 1
+            '信頼性1～3の先頭から順に比較
+            '1:測定、2:推定、3:欠損
         For PointComp2 = 2 To 3
+            'フレーム数の合計が多い姿勢点を選ぶ
+            '合計が同じ場合は信頼性が低い方を優先する
             If reliabilityCounterArray(mostOftenReliability) <= reliabilityCounterArray(PointComp2) Then
                 mostOftenReliability = PointComp2
             End If
         Next
 
-        ' ページを超えたら切り替え処理
-        '（省略、元コード通り）
-
-        ' セルに色を塗る処理
+        'active sheetを変更する基準
+        If wholeStartCount <= thisPageLimit Then
+            '何もしない
+        Else
+            ThisWorkbook.ActiveSheet.Next.Activate
+            If InStr(ThisWorkbook.ActiveSheet.Name, "姿勢素点修正シート") > 0 Then
+                '何もしない
+            Else
+                '戻る
+                ThisWorkbook.ActiveSheet.Previous.Activate
+                Call createSheet(0)
+            End If
+            '更新
+            thisPageLimit = thisPageLimit + LIMIT_COLUMN
+            preClm = preClm - LIMIT_COLUMN
+            Call clear(ActiveSheet)
+            Call autoFillLine(ActiveSheet, wholeEnd - COLUMN_ZERO_NUM)
+            Call autoFillTime(ThisWorkbook.ActiveSheet, ((thisPageLimit / LIMIT_COLUMN) - 1) * 9, wholeEnd - wholeStartCount)
+            Call addPageShape(ActiveSheet, True, True)
+        End If
+        '---------------------------------------------
+        '姿勢素点修正シートのセルに色を塗る
+        '---------------------------------------------
         With ThisWorkbook.ActiveSheet
-            Dim colorStr    As String
-            Dim colorStr1   As String
-
-            ' 姿勢点の色設定
+            'カラーを保持する変数
+            Dim colorStr As String
+            '最も多かった姿勢点に応じて
+            'セルの選択範囲、色を変更
+            '1,2点の場合は緑
             If mostOftenPostureScore <= 2 Then
                 colorStr = colorResultGreen
-            ElseIf mostOftenPostureScore <= 5 Then
+
+            '3～5点の場合は黄
+            ElseIf mostOftenPostureScore >= 3 _
+            And mostOftenPostureScore <= 5 Then
                 colorStr = colorResultYellow
-            Else
+
+            '6～10点の場合は赤
+            ElseIf mostOftenPostureScore >= 6 _
+            And mostOftenPostureScore <= 10 Then
                 colorStr = colorResultRed
             End If
 
+            '2023/12/8　育成G小杉追記 拳上げ箇所追加-----------
+            Dim colorStr1 As String '条件A
+            '-------------条件A
+            '0点の場合、白
             If mostOftenPostureScore_A = 0 Then
                 colorStr1 = colorResultWhite
+
+
+            '1点の場合、赤
             ElseIf mostOftenPostureScore_A = 1 Then
                 colorStr1 = colorResultRed
+
+            End If
+            '------------------------------------------
+
+            '色をクリア
+            .Range _
+            ( _
+                .Cells(ROW_POSTURE_SCORE_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
+                .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM + wholeStartCount + preClm) _
+            ) _
+            .Interior.ColorIndex = 0
+
+
+            '色を塗る
+            .Range _
+            ( _
+                .Cells(ROW_POSTURE_SCORE_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
+                .Cells(ROW_POSTURE_SCORE_BOTTOM - mostOftenPostureScore + 1, COLUMN_ZERO_NUM + wholeStartCount + preClm) _
+            ) _
+            .Interior.Color = colorStr
+
+            ' データ信頼性・姿勢素点のセルに強制的に白を塗る
+            .Range _
+            ( _
+                .Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM), _
+                .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM) _
+            ) _
+            .Interior.Color = colorResultWhite
+
+            '''''''''''''''''''''''''''''''''''''
+            '▽拳上を一時的に除外
+            '
+            ''2023/12/8　育成G小杉追記 拳上げ箇所追加-----------
+            '
+            '    .Range _
+            '    ( _
+            '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
+            '        .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, COLUMN_ZERO_NUM + wholeStartCount + preClm) _
+            '    ) _
+            '    .Interior.Color = colorStr1
+            ''--------------------------------------------------
+            '▽END_拳上を一時的に除外
+
+            '最も多かった信頼性に応じて
+            '色を変更
+            '1:測定、2:推定、3:欠損
+            If mostOftenReliability = 1 Then
+                colorStr = colorMeasureSection
+            ElseIf mostOftenReliability = 2 Then
+                colorStr = colorPredictSection
+            ElseIf mostOftenReliability = 3 Then
+                colorStr = colorMissingSection
             End If
 
-            ' 塗りつぶしクリア
-            .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
-                   .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM + wholeStartCount + preClm)).Interior.ColorIndex = 0
+            .Range _
+            ( _
+                .Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
+                .Cells(ROW_RELIABILITY_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm) _
+            ) _
+            .Interior.Color = colorStr
 
-            ' 姿勢点色塗り
-            .Range(.Cells(ROW_POSTURE_SCORE_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
-                   .Cells(ROW_POSTURE_SCORE_BOTTOM - mostOftenPostureScore + 1, COLUMN_ZERO_NUM + wholeStartCount + preClm)).Interior.Color = colorStr
+        End With 'With ThisWorkbook.Sheets("姿勢素点修正シート")
+    Next 'i = wholeStart To wholeEnd
 
-            ' 信頼性の色設定
-            Select Case mostOftenReliability
-                Case 1: colorStr = colorMeasureSection
-                Case 2: colorStr = colorPredictSection
-                Case 3: colorStr = colorMissingSection
-            End Select
-
-            ' 信頼性色塗り
-            .Range(.Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM + wholeStartCount + preClm), _
-                   .Cells(ROW_RELIABILITY_BOTTOM, COLUMN_ZERO_NUM + wholeStartCount + preClm)).Interior.Color = colorStr
-
-            ' 信頼性タイトル列に白塗り（固定）
-            .Range(.Cells(ROW_RELIABILITY_TOP, COLUMN_ZERO_NUM), _
-                   .Cells(ROW_POSTURE_SCORE_TOP, COLUMN_ZERO_NUM)).Interior.Color = colorResultWhite
-        End With
-    Next
-
-    ' 処理後、再描画やボタン状態復元
-    If processingRange > 1 Then
-        If calcSheetNamePlace(ThisWorkbook.ActiveSheet) = 0 Then
+    ' キャンセルボタン以外からの処理の時
+    If 1 < processingRange Then
+        If calcSheetNamePlace(ThisWorkbook.ActiveSheet) = 0 Then ' 0 = Base sheet
             Call addPageShape(ActiveSheet, False, False)
         Else
             Call addPageShape(ActiveSheet, True, False)
         End If
     End If
 
+    '各シートを更新
     Call checkReliabilityRatio
     Call restartUpdate
 
 End Sub
-
 
 '『全体を処理』ボタンが押されたとき
 '全体の姿勢点を計算して、色を塗る
@@ -501,21 +743,17 @@ Sub paintAll()
     Call paintPostureScore(2)
 End Sub
 
-
 '『Cancel』ボタンが押されたとき
 '選択範囲の姿勢点を計算して、色を塗る（強制ボタンのキャンセル）
 Sub paintSelected()
+    '引数1:processingRange As Long 処理範囲を決める
 
-    ' 選択範囲の左端の列が「0列目（＝姿勢点列）」以下なら処理をスキップ
+    '後で修正することになるが、7列目より小さい列が選択されていたら処理をしない
     If DataAjsSht.activeCells <= COLUMN_ZERO_NUM Then
         Exit Sub
     End If
-
-    ' 選択範囲のみ再描画
-    paintPostureScore 1
-
+    Call paintPostureScore(1)
 End Sub
-
 
 '塗りつぶしを全てクリア
 Sub clear(ws As Worksheet)
@@ -530,6 +768,7 @@ Sub clear(ws As Worksheet)
     ) _
     .Interior.ColorIndex = 0
 End Sub
+
 
 '結果の修正ボタン
 '姿勢点を強制的に変更する
