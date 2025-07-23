@@ -2039,124 +2039,75 @@ Private Function sizeNext(wSize As widthSize, nextChange As Boolean) As widthSiz
 End Function
 
 
-'------------------------------------------------------------
-' ボタンの状態を変更する処理
-'
-' 引数:
-'   btnName  : ボタンの名前（EXPANDBTN_NAME または REDUCEBTN_NAME）
-'   btnstate : True で表示、False で非表示
-'------------------------------------------------------------
+'幅調整用のボタンに使う予定。実際名前さえ決めることができればなんとでもなる。
+
+'引数1：ボタンの名前（EXPANDBTN_NAME or REDUCEBTN_NAME）
+'引数2：ボタンを押せるかどうか
 Private Sub changeBtnState(btnName As String, btnstate As Boolean)
-    Dim iend As Long
-    Dim i As Long
+    Dim iend, i As Long
     Dim dajsht() As String
 
-    ' 姿勢素点修正シートの一覧を取得
     dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
-
-    ' 各シートの対象ボタンの状態を変更
     For i = 1 To iend
         With Worksheets(dajsht(i))
             .Shapes(btnName).Visible = btnstate
         End With
-    Next i
+    Next
 End Sub
 
-
-'------------------------------------------------------------
-' ボタンの状態を変更する処理
-'
-' 引数:
-'   btnName  : ボタンの名前（EXPANDBTN_NAME または REDUCEBTN_NAME）
-'   btnstate : True で表示、False で非表示
-'------------------------------------------------------------
-Private Sub changeBtnState(btnName As String, btnstate As Boolean)
-    Dim iend As Long
-    Dim i As Long
-    Dim dajsht() As String
-
-    ' 姿勢素点修正シートの一覧を取得
-    dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
-    iend = UBound(dajsht)
-
-    ' 各シートの対象ボタンの状態を変更
-    For i = 1 To iend
-        With Worksheets(dajsht(i))
-            .Shapes(btnName).Visible = btnstate
-        End With
-    Next i
-End Sub
-
-'------------------------------------------------------------
-' シートを初期状態にリセットする処理
-' ・拡大・縮小ボタンを表示
-' ・ページ切替ボタンを非表示
-' ・背景色と罫線をクリア
-' ・一部範囲の内容をクリア
-'------------------------------------------------------------
+'シートをリセットする
 Sub resetSheet()
     Const pPage As String = "prevPage"
     Const nPage As String = "nextPage"
-    Dim iend As Long
-    Dim i As Long
+    Dim iend, i As Long
     Dim dajsht() As String
-
-    ' 姿勢素点修正シートの一覧を取得
     dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(dajsht)
-
-    ' 各シートに対して初期化処理を実行
     For i = 1 To iend
         With Worksheets(dajsht(i))
-            ' ボタン表示制御
+            '全て隠す
             .Shapes(EXPANDBTN_NAME).Visible = True
             .Shapes(REDUCEBTN_NAME).Visible = True
             .Shapes(pPage).Visible = False
             .Shapes(nPage).Visible = False
-
-            ' 背景色クリア
-            .Range("G2:G25").Select
-            .Range(Selection, Selection.End(xlToRight)).Select
-            With Selection.Interior
-                .Pattern = xlNone
-                .TintAndShade = 0
-                .PatternTintAndShade = 0
-            End With
-
-            ' 罫線クリア
-            .Range("FN2:FN25").Select
-            .Range(Selection, Selection.End(xlToRight)).Select
-            With Selection.Borders
-                .LineStyle = xlNone
-            End With
-
-            ' データクリア
-            .Range("G24:XFD25").Select
-            Selection.ClearContents
         End With
-    Next i
+        Worksheets(dajsht(i)).Range("G2:G25").Select
+        Worksheets(dajsht(i)).Range(Selection, Selection.End(xlToRight)).Select
+        With Selection.Interior
+            .Pattern = xlNone
+            .TintAndShade = 0
+            .PatternTintAndShade = 0
+        End With
+
+        Worksheets(dajsht(i)).Range("FN2:FN25").Select
+        Worksheets(dajsht(i)).Range(Selection, Selection.End(xlToRight)).Select
+        Selection.Borders(xlDiagonalDown).LineStyle = xlNone
+        Selection.Borders(xlDiagonalUp).LineStyle = xlNone
+        Selection.Borders(xlEdgeLeft).LineStyle = xlNone
+        Selection.Borders(xlEdgeTop).LineStyle = xlNone
+        Selection.Borders(xlEdgeBottom).LineStyle = xlNone
+        Selection.Borders(xlEdgeRight).LineStyle = xlNone
+        Selection.Borders(xlInsideVertical).LineStyle = xlNone
+        Selection.Borders(xlInsideHorizontal).LineStyle = xlNone
+
+        Worksheets(dajsht(i)).Range("G24:XFD25").Select
+        Selection.ClearContents
+    Next
+
 End Sub
 
 
-'------------------------------------------------------------
-' 非表示の「名前の定義」を再表示するマクロ
-' （例：シートコピー後のエラー対策）
-' 実行後、対象の名前をユーザーに通知
-'------------------------------------------------------------
+'非表示の名前の定義を再表示　20230215　早川　シートコピー時に発生するエラー対策
 Public Sub ShowInvisibleNames()
-    Dim oName As Name
-
-    ' ワークブック内すべての名前をチェック
+    Dim oName As Object
     For Each oName In Names
         If oName.Visible = False Then
             oName.Visible = True
         End If
     Next
-
     MsgBox "非表示の名前の定義を表示しました。", vbOKOnly
 End Sub
-
 
 ' 選択範囲をデータ有効域と交差させる
 ' 戻り値 : True → 交差あり（ leftCol/rightCol が返る ）
