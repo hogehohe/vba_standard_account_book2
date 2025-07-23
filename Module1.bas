@@ -980,153 +980,148 @@ Sub forceResult_Kobushiage(postureScorebutton As Integer)
     checkReliabilityRatio
 End Sub
 
-'ポイント計算シートのフラグ変更
-'引数1：選択範囲の左端のセル
-'引数2：選択範囲の右端のセル
-'引数3：初期化から呼ばれたら0、それ以外は1
-'引数4：ボタンを区別する
-'       初期化 :-1
-'       除外   :99
-'　　　 強制　 :1～10
+
+'------------------------------------------------------------
+' ポイント計算シートの姿勢点・信頼性を更新
+'
+' 引数:
+'   sclm  - 選択範囲の左端列番号（実際の列位置）
+'   fclm  - 選択範囲の右端列番号
+'   bit   - 初期化フラグ（0:初期化 / 1:強制）※未使用？
+'   score - 姿勢点（-1:初期化, 1〜10:強制, 99:除外）
+'------------------------------------------------------------
 Sub postureUpdate(sclm As Long, fclm As Long, bit As Long, score As Long)
 
-    Dim s    As Long
-    Dim last As Long
-    Dim i    As Long
-    Dim fbit As Long
-    Dim vle  As Long
+    Dim s As Long, last As Long, i As Long
+    Dim vle As Long
 
-    'ポイント計算シートでは1行目から値を数えないで2行目からとなるため+1
+    ' データ列へのオフセット変換（データは2行目から）
     s = sclm - COLUMN_ZERO_NUM + 1
     last = fclm - COLUMN_ZERO_NUM + 1
 
     For i = s To last
-
         With ThisWorkbook.Sheets("ポイント計算シート")
-            '初期化ボタンの場合
+
+            '-------------------------------
+            ' 初期化処理
+            '-------------------------------
             If score = -1 Then
-                '元データのセル値を入れる（姿勢素点）
                 vle = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
-                '2023/12/18 育成G追加（拳上げの初期化）--------------------------
-                .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
-                '----------------------------------------------------------------
-'                '字幕＆集計用、グラフ表示用のセルを書き換え
-'                .Cells(i, COLUMN_REMOVE_SECTION).Value = 0
-'                .Cells(i, COLUMN_FORCED_SECTION).Value = 0
-            '強制ボタンの場合
+
+                ' 拳上げデータも元に戻す
+                .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = _
+                    .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
+
+            '-------------------------------
+            ' 強制スコア（1～9）
+            '-------------------------------
             ElseIf 1 <= score And score <= 9 Then
-                'ボタンの情報を代入
                 vle = score
-'                '字幕＆集計用、グラフ表示用のセルを書き換え
-'                .Cells(i, COLUMN_REMOVE_SECTION).Value = 0
-'                .Cells(i, COLUMN_FORCED_SECTION).Value = 1
 
-            '除外ボタンの場合
+            '-------------------------------
+            ' 除外（score = 99）またはその他
+            '-------------------------------
             Else
-                'ボタンの情報を代入
                 vle = score
-'                '字幕＆集計用、グラフ表示用のセルを書き換え
-'                .Cells(i, COLUMN_REMOVE_SECTION).Value = 1
-'                .Cells(i, COLUMN_FORCED_SECTION).Value = 0
             End If
 
-            '字幕＆集計用、グラフ表示用のセルを書き換え
-            '除外の時
-            If vle = 99 Then
-                .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
-                .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
-                .Cells(i, COLUMN_POSTURE_RED).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 0
-                '2023/12/28 育成G追記（除外時、字幕用拳上げ列に0を入れる）----
-                .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = 0
-                '-------------------------------------------------------------
-            '楽な姿勢の時
-            ElseIf 1 <= vle And vle <= 2 Then
-                .Cells(i, COLUMN_POSTURE_GREEN).Value = vle
-                .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
-                .Cells(i, COLUMN_POSTURE_RED).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
-            'やや辛い姿勢の時
-            ElseIf 3 <= vle And vle <= 5 Then
-                .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
-                .Cells(i, COLUMN_POSTURE_YELLOW).Value = vle
-                .Cells(i, COLUMN_POSTURE_RED).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
-            '辛い姿勢の時
-            Else
-                .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
-                .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
-                .Cells(i, COLUMN_POSTURE_RED).Value = vle
-                .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
-            End If
-        End With ' With ThisWorkbook.Sheets("ポイント計算シート")
+            '-------------------------------
+            ' 姿勢点の表示・集計用列にスコアを設定
+            '-------------------------------
+            Select Case vle
+                Case 99 ' 除外
+                    .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
+                    .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
+                    .Cells(i, COLUMN_POSTURE_RED).Value = 0
+                    .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 0
+                    .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = 0 ' 拳上げ列も0に
 
-        Call reliabilityUpdate(i, score)
+                Case 1 To 2 ' 楽な姿勢
+                    .Cells(i, COLUMN_POSTURE_GREEN).Value = vle
+                    .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
+                    .Cells(i, COLUMN_POSTURE_RED).Value = 0
+                    .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
+
+                Case 3 To 5 ' やや辛い姿勢
+                    .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
+                    .Cells(i, COLUMN_POSTURE_YELLOW).Value = vle
+                    .Cells(i, COLUMN_POSTURE_RED).Value = 0
+                    .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
+
+                Case Else ' 辛い姿勢（6以上）
+                    .Cells(i, COLUMN_POSTURE_GREEN).Value = 0
+                    .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
+                    .Cells(i, COLUMN_POSTURE_RED).Value = vle
+                    .Cells(i, COLUMN_DATA_RESULT_FIX).Value = vle
+            End Select
+        End With
+
+        ' 信頼性の更新（個別フレーム）
+        reliabilityUpdate i, score
     Next
 
 End Sub
 
-'姿勢素点強制区間にビットを立てる処理
-'引数1：ポイント計算シートの修正するセルの行
-'引数2：ボタンを区別する
-'       初期化 :-1
-'       除外   :99
-'　　　 強制　 :1～10
+
+'------------------------------------------------------------
+' ポイント計算シートの信頼性フラグを更新する処理
+'
+' 引数:
+'   row  - 処理対象のデータ行番号（2行目以降）
+'   vle  - 入力値（-1:初期化, 99:除外, それ以外:強制）
+'------------------------------------------------------------
 Sub reliabilityUpdate(row As Long, vle As Long)
     With ThisWorkbook.Sheets("ポイント計算シート")
-        '初期化の時
-        If vle = -1 Then
-            .Cells(row, COLUMN_FORCED_SECTION).Value = 0
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
-        '除外の時
-        ElseIf vle = 99 Then
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = 1
-            .Cells(row, COLUMN_FORCED_SECTION).Value = 0
-        '強制の時
-        Else
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
-            .Cells(row, COLUMN_FORCED_SECTION).Value = 1
-        End If
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+        Select Case vle
+            Case -1 ' 初期化処理
+                .Cells(row, COLUMN_FORCED_SECTION).Value = 0
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
+
+            Case 99 ' 除外処理
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = 1
+                .Cells(row, COLUMN_FORCED_SECTION).Value = 0
+
+            Case Else ' 強制処理
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
+                .Cells(row, COLUMN_FORCED_SECTION).Value = 1
+        End Select
+    End With
 End Sub
-'2023/12/12 育成G追記
-'点数に応じて数値を指定の列に値を挿入する
-'引数1：選択範囲の左端のセル
-'引数2：選択範囲の右端のセル
-'引数3：戻るから呼ばれたら0、それ以外は1
-'引数4：どのボタンから呼ばれたかを区別するID
-'       戻る   ：-1
-'       強制ON ：1
-'       強制OFF：0
-'       除外   ：99
+
+
+'------------------------------------------------------------
+' ポイント計算シートの拳上げスコアを更新する処理
+'
+' 引数:
+'   sclm  - 選択範囲の左端列番号（実際の列位置）
+'   fclm  - 選択範囲の右端列番号
+'   bit   - 処理種別（0:初期化/戻る, 1:強制）
+'   score - スコア値（-1:戻る, 0:OFF, 1:ON, 99:除外）
+'------------------------------------------------------------
 Sub postureUpdate_Kobushiage(sclm As Long, fclm As Long, bit As Long, score As Long)
 
-    Dim s    As Long
-    Dim last As Long
-    Dim i    As Long
-    Dim fbit As Long
-    Dim vle  As Long
-
-
+    Dim s As Long, last As Long, i As Long
+    Dim fbit As Long, vle As Long
     Dim column_forced_num As Long
 
-
-    If Selection.row = ROW_POSTURE_SCORE_KOBUSHIAGE Then
+    ' 選択行が拳上げ行だった場合にのみ対象列をセット
+    If Selection.Row = ROW_POSTURE_SCORE_KOBUSHIAGE Then
         column_forced_num = COLUMN_POSTURE_SCORE_KOBUSHIAGE
     End If
 
-
-    'ポイント計算シートでは1行目から値を数えないで2行目からとなるため+1
+    ' データは2行目以降が対象
     s = sclm - COLUMN_ZERO_NUM + 2
     last = fclm - COLUMN_ZERO_NUM + 2
 
-
-
     For i = s To last
-
         With ThisWorkbook.Sheets("ポイント計算シート")
+
+            ' 信頼性ビットを取得
             fbit = .Cells(i, COLUMN_FORCED_SECTION_TOTAL).Value
 
+            '-------------------------------
+            ' bit=0: 初期化時の値決定
+            '-------------------------------
             If bit = 0 Then
                 If fbit = 0 Then
                     vle = .Cells(i, COLUMN_POSTURE_SCORE_ALL).Value
@@ -1134,92 +1129,83 @@ Sub postureUpdate_Kobushiage(sclm As Long, fclm As Long, bit As Long, score As L
                     vle = .Cells(i, COLUMN_BASE_SCORE).Value
                 End If
 
-                '姿勢素点除外区間にビットが立っている
+                ' 除外フラグが立っている場合は常にベーススコアを使用
                 If .Cells(i, COLUMN_REMOVE_SECTION).Value = 1 Then
                     vle = .Cells(i, COLUMN_BASE_SCORE).Value
                 End If
+
+            '-------------------------------
+            ' bit=1: 強制入力時のスコア値
+            '-------------------------------
             Else
                 vle = score
             End If
 
+            ' ベーススコアも更新
+            baseScore i, bit
 
-            Call baseScore(i, bit)
-            ' 2023/12/12 育成G COLUMN_POSTURE_SCORE_ALL ⇒ COLUMN_POSTURE_SCORE_KOBUSHIAGE（強制後の書き込み先 姿勢素点元データ列⇒拳上げ表示＆字幕用列）
+            ' 拳上げスコア列に値を代入（表示・字幕用）
             .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = vle
-        Debug.Print vle
+
+            Debug.Print vle
         End With
 
-        Call reliabilityUpdate_Kobushiage(i, bit, vle, column_forced_num)
+        ' 信頼性更新処理（拳上げ用）
+        reliabilityUpdate_Kobushiage i, bit, vle, column_forced_num
     Next
-
 End Sub
-'2023/12/12 育成G追記
-'姿勢素点強制区間にビットを立てる処理
-'引数1：ポイント計算シートの修正するセルの行
-'引数2：リセットから呼ばれたら0、それ以外は1
-'引数3：どのボタンから呼ばれたかを区別するID
-'       リセット ：-1
-'       強制ON 　：1
-'       強制OFF　：0
-'       除外   　：99
-'引数4：ポイント計算シートの修正するセルの列
+
+
+'------------------------------------------------------------
+' 拳上げスコアに対応する信頼性フラグを更新する処理
+'
+' 引数:
+'   row                 - 処理対象のデータ行番号
+'   bit                 - 処理種別（0:リセット, 1:強制）
+'   vle                 - スコア値（-1:リセット, 0:OFF, 1:ON, 99:除外）
+'   column_forced_num   - 処理対象の姿勢スコア列（拳上げ固定）
+'------------------------------------------------------------
 Sub reliabilityUpdate_Kobushiage(row As Long, bit As Long, vle As Long, column_forced_num As Long)
-    '変数定義
-    Dim column_reliability_forced_num As Long
-
-
     With ThisWorkbook.Sheets("ポイント計算シート")
-        '除外
-        If vle = 99 And bit = 1 Then
-            '姿勢素点除外区間
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = bit
 
-            '姿勢の強制を解除
-            .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = 0
+        Select Case True
+            '------------------------------
+            ' 除外処理（スコア99 + 強制）
+            '------------------------------
+            Case vle = 99 And bit = 1
+                ' 除外ビットを立てる
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = bit
+                ' 拳上げスコア初期化
+                .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = 0
+                ' 拳上げ強制フラグ解除
+                .Cells(row, COLUMN_FORCED_SECTION_KOBUSHIAGE).Value = 0
 
-            '信頼性の強制を解除
-            .Cells(row, COLUMN_FORCED_SECTION_KOBUSHIAGE).Value = 0
+            '------------------------------
+            ' リセット処理（bit = 0）
+            '------------------------------
+            Case bit = 0
+                ' 全体フラグと除外フラグのクリア
+                .Cells(row, COLUMN_FORCED_SECTION_TOTAL).Value = 0
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
+                ' 拳上げスコアを初期値に戻す
+                .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
+                ' 拳上げ強制フラグ解除
+                .Cells(row, COLUMN_FORCED_SECTION_KOBUSHIAGE).Value = 0
 
-        'リセット
-        ElseIf bit = 0 Then
-            '姿勢素点強制区間と姿勢素点除外区間のビットを消す
-            .Cells(row, COLUMN_FORCED_SECTION_TOTAL).Value = bit
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = bit
+            '------------------------------
+            ' 強制入力（bit = 1）
+            '------------------------------
+            Case Else
+                ' 除外フラグを解除
+                .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
+                ' 拳上げ信頼性ビットを強制に設定
+                .Cells(row, COLUMN_FORCED_SECTION_TOTAL).Value = 1
+        End Select
 
-            '姿勢をリセット
-            .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = .Cells(row, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
-
-            '信頼性の強制を解除
-            .Cells(row, COLUMN_FORCED_SECTION_KOBUSHIAGE).Value = 0
-
-
-        '強制
-        Else
-            '2023/12/12　育成G コメントアウト（拳上げ以外の強制修正は不要なので消しました）-----------------
-            '信頼性を強制にする列を決める
-            'If column_forced_num = COLUMN_POSTURE_SCORE_KOBUSHIAGE Then
-            'column_reliability_forced_num = COLUMN_FORCED_SECTION_KOBUSHIAGE
-            'End If
-            '-------------------------------------------------
-
-            '除外を解除
-            .Cells(row, COLUMN_REMOVE_SECTION).Value = 0
-            '拳上腰曲げ膝曲げのいずれかを強制
-            '2023/12/12　育成G コメントアウト-----------------
-            '.Cells(row, column_forced_num).Value = vle
-            '-------------------------------------------------
-            '全体の信頼性強制
-            '2023/12/12　育成G コメントアウト-----------------
-            '.Cells(row, COLUMN_FORCED_SECTION_TOTAL).Value = bit
-            '-------------------------------------------------
-            '拳上腰曲げ膝曲げのいずれか信頼性を強制にする
-            '2023/12/12　育成G column_forced_num ⇒ COLUMN_POSTURE_SCORE_KOBUSHIAGE-----------------
-            .Cells(row, COLUMN_FORCED_SECTION_TOTAL).Value = 1
-            '-------------------------------------------------
-        End If
     End With
-
 End Sub
+
+
 '2023/12/12 育成G追記
 '元データ列へ挿入する
 '引数1：データを挿入するセルの行
