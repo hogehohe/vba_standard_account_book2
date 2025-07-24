@@ -342,7 +342,7 @@ Sub paintPostureScore(processingRange As Long)
     Dim postureScoreDataArray()           As Long
     '2023/12/11　育成G小杉追記-------------
     Dim postureScoreDataArray_A()  As Long
-    '１～１１点のフレーム数をそれぞれ合計
+    '1 ~ 11点のフレーム数をそれぞれ合計
     Dim postureScoreCounterArray(11)      As Long
     ' 2023/12/11　育成G小杉追記 拳上げ点数--
     Dim postureScoreCounterArray_A(0 To 1) As Integer
@@ -351,7 +351,7 @@ Sub paintPostureScore(processingRange As Long)
     'ポイント計算シートの信頼性を保管
     '1:測定、2:推定、3:欠損
     Dim reliabilityDataArray()     As Long
-    '信頼性１～３のフレーム数をそれぞれ合計
+    '信頼性1 ~ 3のフレーム数をそれぞれ合計
     Dim reliabilityCounterArray(3) As Long
 
     '---------------------------------------------
@@ -2178,9 +2178,7 @@ Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As
     shtPage = calcSheetNamePlace(ActiveSheet)
     baseClm = LIMIT_COLUMN * shtPage
 
-    With Worksheets("ポイント計算シート")
-        totalFrm = .Cells(1, 3).End(xlDown).row - 1
-    End With
+    totalFrm = getLastRow() - 1
 
     ' フレーム右端
     frmR = selR - COLUMN_ZERO_NUM + baseClm
