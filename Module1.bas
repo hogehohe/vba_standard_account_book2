@@ -159,10 +159,10 @@ Sub autoFillTemplate()
     ' 「ポイント計算シート」から映像情報を取得
     With ThisWorkbook.Sheets("ポイント計算シート")
         ' フレームレートの取得（例：30fps など）
-        fps = .Cells(2, 199).Value
+        fps = getFps()
 
         ' 最終行のフレーム番号を取得（列Aの最下行）
-        maxFrameNum = .Cells(.Cells(1, 1).End(xlDown).Row, 1).Value
+        maxFrameNum = getLastRow()
 
         ' 作業時間（秒）＝フレーム数 ÷ FPS
         ' ※現在は未使用。必要になればコメントアウト解除
@@ -407,7 +407,7 @@ Sub paintPostureScore(processingRange As Long)
     '---------------------------------------------
     With ThisWorkbook.Sheets("ポイント計算シート")
         '最終行を取得
-        maxRowNum = .Cells(1, 3).End(xlDown).row
+        maxRowNum = getLastRow()
         '配列の最後尾
 '        余分を削除
         maxRowNum = maxRowNum - 1
@@ -442,7 +442,7 @@ Sub paintPostureScore(processingRange As Long)
             End If
         Next
         'フレームレートを取得
-        fps = .Cells(2, 199).Value
+        fps = getFps()
         Dim video_sec As Double: video_sec = wholeEnd / fps
 
     End With 'With ThisWorkbook.Sheets("ポイント計算シート")
@@ -1348,8 +1348,8 @@ Sub checkReliabilityRatio()
 
     ' ポイント計算シートからFPSと最終行を取得
     With ThisWorkbook.Sheets("ポイント計算シート")
-        fps = .Cells(2, 199)
-        maxRowNum = .Cells(1, 3).End(xlDown).Row
+        fps = getFps()
+        maxRowNum = getLastRow()
     End With
 
     ' 修正シート列数を初期化（全体列 - ラベル列）
@@ -1753,7 +1753,7 @@ Sub Savebook()
     Dim fps          As Double
 
     'フレームレートを取得
-    fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
+    fps = getFps()
     If YesorNo() = vbYes Then
 
 
@@ -2196,4 +2196,18 @@ Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As
     Else
         CropSelectionToDataArea = True    ' 行・列とも交差
     End If
+End Function
+
+
+'fpsの値を取得する
+'戻り値：fpsの値
+Function getFps() As Double
+    getFps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199).Value
+End Function
+
+
+'最終行を取得する
+'戻り値：最終行
+Function getLastRow() As Long
+    getLastRow = ThisWorkbook.Sheets("ポイント計算シート").Cells(1, 3).End(xlDown).row
 End Function
