@@ -1052,7 +1052,6 @@ End Sub
 '   初回呼び出し時に現在の幅サイズを基準として記録する。
 '------------------------------------------------------------
 Sub adjustWidth(expansionFlag As Boolean)
-    Const EXPANSION_RATIO As Long: EXPANSION_RATIO = 100    ' 未使用定数だが保持
     Static initFin        As Boolean                        ' 初回呼び出しフラグ
     Static wSize          As widthSize                      ' 現在の幅サイズ
 
@@ -1063,17 +1062,17 @@ Sub adjustWidth(expansionFlag As Boolean)
     If Not initFin Then
         initFin = True
         Dim initSize As Long
-        initSize = DataAjsSht.GetWidthPoints()
+        initSize = DataAjsSht.GetWidthPoints() ' 単位：ポイント
 
         Select Case initSize
             Case Is < widthSize.Medium
-                wSize = Small
+                wSize = widthSize.Small
             Case Is < widthSize.Large
-                wSize = Medium
+                wSize = widthSize.Medium
             Case Is < widthSize.LL
-                wSize = Large
+                wSize = widthSize.Large
             Case Else
-                wSize = LL
+                wSize = widthSize.LL
         End Select
     End If
 
