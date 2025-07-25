@@ -4,12 +4,12 @@ Option Explicit '変数の宣言を強制
 '======================================================================================
 '条件設定シートの各データの行番号、列番号を定義 (拳上概要の定数もここで定義）
 '======================================================================================
-Const KOBUSHIAGE_MISSING_DOWNLIM_TIME           As Double = 1     '（秒） 拳上欠損ノイズ判定に使う
-Const TEKUBI_SPEED_UPLIM_PREDICT            As Double = 10    '（km/h）手首z位置の変化量上限　遮蔽検知に使う
-Const MEAGERE_TIME_MACROUPDATEDATA          As Boolean = True 'TrueのときMacroUpdateDataの処理時間を測定する
+Const KOBUSHIAGE_MISSING_DOWNLIM_TIME           As Double = 1       '（秒） 拳上欠損ノイズ判定に使う
+Const TEKUBI_SPEED_UPLIM_PREDICT                As Double = 10      '（km/h）手首z位置の変化量上限　遮蔽検知に使う
+Const MEAGERE_TIME_MACROUPDATEDATA              As Boolean = True   'TrueのときMacroUpdateDataの処理時間を測定する
 Const KOBUSHIAGE_TIME_HOSEI_COEF_WORK           As Double = 5 / 355 '拳上時間補正係数 対象工程の中で最も作業時間が長い工程の　確認必要な欠損区間数/作業時間
-Const KOBUSHIAGE_MISSING_DILATION_SIZE          As Double = 0.33   '（秒）拳上欠損の膨張処理に使う窓の大きさ（片側）
-Const KOBUSHIAGE_MISSING_EROSION_SIZE           As Double = 0.33   '（秒）拳上欠損の収縮処理に使う窓の大きさ（片側）
+Const KOBUSHIAGE_MISSING_DILATION_SIZE          As Double = 0.33    '（秒）拳上欠損の膨張処理に使う窓の大きさ（片側）
+Const KOBUSHIAGE_MISSING_EROSION_SIZE           As Double = 0.33    '（秒）拳上欠損の収縮処理に使う窓の大きさ（片側）
 Const KOBUSHIAGE_TIME_HOSEI_COEF_MISSING        As Double = 0.2     '拳上時間補正係数 確認必要な欠損区間数１個あたり
 
 'makeGraph、outputCaption、fixGraphDataAndSheetモジュールの中に条件設定シートのセル内から値を読み出す部分あり
@@ -17,111 +17,108 @@ Const KOBUSHIAGE_TIME_HOSEI_COEF_MISSING        As Double = 0.2     '拳上時�
 '======================================================================================
 'ポイント計算シート上の各データの行番号、列番号を定義
 '======================================================================================
-Const COLUMN_POSE_NAME                      As Long = 1
-Const COLUMN_POSE_KEEP_TIME                 As Long = 2
-Const COLUMN_HIZA_R_ANGLE                   As Long = 6
-Const COLUMN_HIZA_L_ANGLE                   As Long = 7
-Const COLUMN_KOSHI_ANGLE                    As Long = 8
-Const COLUMN_SHOOTING_DIRECTION             As Long = 9
+Const COLUMN_POSE_NAME                              As Long = 1
+Const COLUMN_POSE_KEEP_TIME                         As Long = 2
+Const COLUMN_HIZA_R_ANGLE                           As Long = 6
+Const COLUMN_HIZA_L_ANGLE                           As Long = 7
+Const COLUMN_KOSHI_ANGLE                            As Long = 8
+Const COLUMN_SHOOTING_DIRECTION                     As Long = 9
 
-Const COLUMN_POS_KOSHI_Z                    As Long = 13
+Const COLUMN_POS_KOSHI_Z                            As Long = 13
 
-Const COLUMN_POS_AHIKUBI_R_Z                As Long = 25
-Const COLUMN_POS_AHIKUBI_L_Z                As Long = 37
+Const COLUMN_POS_AHIKUBI_R_Z                        As Long = 25
+Const COLUMN_POS_AHIKUBI_L_Z                        As Long = 37
 
-Const COLUMN_POS_KATA_R_Z                   As Long = 57
-Const COLUMN_POS_KATA_L_Z                   As Long = 69
+Const COLUMN_POS_KATA_R_Z                           As Long = 57
+Const COLUMN_POS_KATA_L_Z                           As Long = 69
 
-Const COLUMN_POS_HIJI_R_Z                   As Long = 61
-Const COLUMN_POS_HIJI_L_Z                   As Long = 73
+Const COLUMN_POS_HIJI_R_Z                           As Long = 61
+Const COLUMN_POS_HIJI_L_Z                           As Long = 73
 
-Const COLUMN_POS_TEKUBI_R_Z                 As Long = 65
-Const COLUMN_POS_TEKUBI_L_Z                 As Long = 77
+Const COLUMN_POS_TEKUBI_R_Z                         As Long = 65
+Const COLUMN_POS_TEKUBI_L_Z                         As Long = 77
 
-Const COLUMN_ROUGH_TIME                     As Long = 201
-Const COLUMN_CAPTION_WORK_NAME              As Long = 202
-Const COLUMN_DATA_RESULT_ORIGIN             As Long = 203
-Const COLUMN_DATA_MEASURE_SECTION           As Long = 204
-Const COLUMN_DATA_PREDICT_SECTION           As Long = 205
-Const COLUMN_DATA_REMOVE_SECTION            As Long = 206
-Const COLUMN_DATA_FORCED_SECTION            As Long = 207
-Const COLUMN_DATA_RESULT_FIX                As Long = 208
-Const COLUMN_DATA_RESULT_GREEN              As Long = 209
-Const COLUMN_DATA_RESULT_YELLOW             As Long = 210
-Const COLUMN_DATA_RESULT_RED                As Long = 211
-Const COLUMN_CAPTION_TRACK1                 As Long = 212 'デバッグ用（普段は使わない）
+Const COLUMN_ROUGH_TIME                             As Long = 201
+Const COLUMN_CAPTION_WORK_NAME                      As Long = 202
+Const COLUMN_DATA_RESULT_ORIGIN                     As Long = 203
+Const COLUMN_DATA_MEASURE_SECTION                   As Long = 204
+Const COLUMN_DATA_PREDICT_SECTION                   As Long = 205
+Const COLUMN_DATA_REMOVE_SECTION                    As Long = 206
+Const COLUMN_DATA_FORCED_SECTION                    As Long = 207
+Const COLUMN_DATA_RESULT_FIX                        As Long = 208
+Const COLUMN_DATA_RESULT_GREEN                      As Long = 209
+Const COLUMN_DATA_RESULT_YELLOW                     As Long = 210
+Const COLUMN_DATA_RESULT_RED                        As Long = 211
+Const COLUMN_CAPTION_TRACK1                         As Long = 212 'デバッグ用（普段は使わない）
 
-Const COLUMN_DATA_MISSING_SECTION           As Long = 219
+Const COLUMN_DATA_MISSING_SECTION                   As Long = 219
 
-Const COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_ORG           As Long = 221
-Const COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_ORG           As Long = 222
-Const COLUMN_KOBUSHIAGE_FORCED_SECTION                     As Long = 223 '拳上、腰曲げ、膝曲げの強制、判定フラグ、フラグの記憶
-Const COLUMN_KOBUSHIAGE_RESULT                             As Long = 245
-Const COLUMN_DATA_KOSHIMAGE_MEASURE_SECTION            As Long = 225
-Const COLUMN_DATA_KOSHIMAGE_PREDICT_SECTION            As Long = 226
-Const COLUMN_DATA_KOSHIMAGE_MISSING_SECTION            As Long = 227
-Const COLUMN_KOSHIMAGE_FORCED_SECTION                  As Long = 228
-Const COLUMN_KOSHIMAGE_RESULT                          As Long = 247
-Const COLUMN_DATA_HIZAMAGE_MEASURE_SECTION             As Long = 230
-Const COLUMN_DATA_HIZAMAGE_PREDICT_SECTION             As Long = 231
-Const COLUMN_DATA_HIZAMAGE_MISSING_SECTION             As Long = 232
-Const COLUMN_HIZAMAGE_FORCED_SECTION                   As Long = 233
-Const COLUMN_HIZAMAGE_RESULT                           As Long = 249
-Const COLUMN_CAPTION_TRACK2                            As Long = 235 'デバッグ用（普段は使わない）
+Const COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_ORG    As Long = 221
+Const COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_ORG    As Long = 222
+Const COLUMN_KOBUSHIAGE_FORCED_SECTION              As Long = 223   '拳上、腰曲げ、膝曲げの強制、判定フラグ、フラグの記憶
+Const COLUMN_KOBUSHIAGE_RESULT                      As Long = 245
+Const COLUMN_DATA_KOSHIMAGE_MEASURE_SECTION         As Long = 225
+Const COLUMN_DATA_KOSHIMAGE_PREDICT_SECTION         As Long = 226
+Const COLUMN_DATA_KOSHIMAGE_MISSING_SECTION         As Long = 227
+Const COLUMN_KOSHIMAGE_FORCED_SECTION               As Long = 228
+Const COLUMN_KOSHIMAGE_RESULT                       As Long = 247
+Const COLUMN_DATA_HIZAMAGE_MEASURE_SECTION          As Long = 230
+Const COLUMN_DATA_HIZAMAGE_PREDICT_SECTION          As Long = 231
+Const COLUMN_DATA_HIZAMAGE_MISSING_SECTION          As Long = 232
+Const COLUMN_HIZAMAGE_FORCED_SECTION                As Long = 233
+Const COLUMN_HIZAMAGE_RESULT                        As Long = 249
+Const COLUMN_CAPTION_TRACK2                         As Long = 235    'デバッグ用（普段は使わない）
 
-Const COLUMN_TEKUBI_RZ_SPEED                           As Long = 237 '右手首Ｚ位置の差
-Const COLUMN_TEKUBI_LZ_SPEED                           As Long = 238 '左手首Ｚ位置の差
-Const COLUMN_TEKUBI_Z_SPEED_OVER                       As Long = 239 '手首Ｚ位置の差 しきい値超えフラグ
-Const COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_DST           As Long = 240 '拳上測定区間
-Const COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST           As Long = 241 '拳上欠損区間
-Const COLUMN_MEAGERE_TIME_MACROUPDATEDATA              As Long = 242 'MacroUpdateDataの処理時間を測定結果を格納する
+Const COLUMN_TEKUBI_RZ_SPEED                        As Long = 237    '右手首Ｚ位置の差
+Const COLUMN_TEKUBI_LZ_SPEED                        As Long = 238    '左手首Ｚ位置の差
+Const COLUMN_TEKUBI_Z_SPEED_OVER                    As Long = 239    '手首Ｚ位置の差 しきい値超えフラグ
+Const COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_DST    As Long = 240    '拳上測定区間
+Const COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST    As Long = 241    '拳上欠損区間
+Const COLUMN_MEAGERE_TIME_MACROUPDATEDATA           As Long = 242    'MacroUpdateDataの処理時間を測定結果を格納する
 
-Const COLUMN_DATA_RESULT_GH_KOBUSHIAGE      As Long = 245
-Const COLUMN_DATA_RESULT_GH_KOSHIMAGE       As Long = 247
-Const COLUMN_DATA_RESULT_GH_HIZAMAGE        As Long = 249
-Const COLUMN_DATA_RESULT_GH_SONKYO          As Long = 251
+Const COLUMN_DATA_RESULT_GH_KOBUSHIAGE              As Long = 245
+Const COLUMN_DATA_RESULT_GH_KOSHIMAGE               As Long = 247
+Const COLUMN_DATA_RESULT_GH_HIZAMAGE                As Long = 249
+Const COLUMN_DATA_RESULT_GH_SONKYO                  As Long = 251
 
-Const COLUMN_GH_HIZA_L                      As Long = 252
-Const COLUMN_GH_HIZA_R                      As Long = 253
+Const COLUMN_GH_HIZA_L                              As Long = 252
+Const COLUMN_GH_HIZA_R                              As Long = 253
 
-Const COLUMN_MAX_NUMBER                                As Long = 256 '現在使用されている列番号の最大値
+Const COLUMN_MAX_NUMBER                             As Long = 256   '現在使用されている列番号の最大値
 
 
 '======================================================================================
 '姿勢重量点調査票シートの各データの行番号、列番号を定義
 '======================================================================================
-Const SHIJUTEN_SHEET_ROW_KOUTEI_NAME                            As Long = 3
-Const SHIJUTEN_SHEET_ROW_POSESTART_INDEX                        As Long = 9
-Const SHIJUTEN_SHEET_ROW_EXPAND_NUMBER_CHECK                    As Long = 29
+Const SHIJUTEN_SHEET_ROW_KOUTEI_NAME                As Long = 3
+Const SHIJUTEN_SHEET_ROW_POSESTART_INDEX            As Long = 9
+Const SHIJUTEN_SHEET_ROW_EXPAND_NUMBER_CHECK        As Long = 29
 
-Const SHIJUTEN_SHEET_EXPAND_NUM_CHECK_WORD                      As String = "その他の時間（定時稼働時間7.5H-Σ延べ時間）"
+Const SHIJUTEN_SHEET_EXPAND_NUM_CHECK_WORD          As String = "その他の時間（定時稼働時間7.5H-Σ延べ時間）"
 
+Const SHIJUTEN_SHEET_COLUMN_WORK_NUMBER             As Long = 2
+Const SHIJUTEN_SHEET_COLUMN_WORK_NAME               As Long = 3
+Const SHIJUTEN_SHEET_COLUMN_KOUTEI_NAME             As Long = 4
+Const SHIJUTEN_SHEET_COLUMN_WORK_TIME               As Long = 9
+Const SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX        As Long = 10
 
-Const SHIJUTEN_SHEET_COLUMN_WORK_NUMBER                         As Long = 2
-Const SHIJUTEN_SHEET_COLUMN_WORK_NAME                           As Long = 3
-Const SHIJUTEN_SHEET_COLUMN_KOUTEI_NAME                         As Long = 4
-Const SHIJUTEN_SHEET_COLUMN_WORK_TIME                           As Long = 9
-Const SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX                    As Long = 10
+Const SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME          As Long = 36
+Const SHIJUTEN_SHEET_COLUMN_WORKEND_TIME            As Long = 38
 
-Const SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME                      As Long = 36
-Const SHIJUTEN_SHEET_COLUMN_WORKEND_TIME                        As Long = 38
+Const SHIJUTEN_SHEET_COLUMN_DATA_MISSING_SECTION    As Long = 46
+Const SHIJUTEN_SHEET_COLUMN_DATA_PREDICT_SECTION    As Long = 47
 
+Const SHIJUTEN_SHEET_COLUMN_KOBUSHIAGE_TIME         As Long = 49 '拳上時間
+Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_TIME          As Long = 51 '腰曲げ時間
+Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_TIME           As Long = 53 '膝曲げ時間
 
-Const SHIJUTEN_SHEET_COLUMN_DATA_MISSING_SECTION                As Long = 46
-Const SHIJUTEN_SHEET_COLUMN_DATA_PREDICT_SECTION                As Long = 47
+Const SHIJUTEN_SHEET_COLUMN_KOBUSHIAGE_MISSING_TIME As Long = 55 '拳上欠損区間
 
-Const SHIJUTEN_SHEET_COLUMN_KOBUSHIAGE_TIME                         As Long = 49 '拳上時間
-Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_TIME                      As Long = 51 '腰曲げ時間
-Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_TIME                       As Long = 53 '膝曲げ時間
+Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_MISSING_TIME  As Long = 57 '腰曲げ欠損区間
+Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_PREDICT_TIME  As Long = 58 '腰曲げ推定区間
 
-
-Const SHIJUTEN_SHEET_COLUMN_KOBUSHIAGE_MISSING_TIME                 As Long = 55 '拳上欠損区間
-
-Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_MISSING_TIME              As Long = 57 '腰曲げ欠損区間
-Const SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_PREDICT_TIME              As Long = 58 '腰曲げ推定区間
-
-Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_MISSING_TIME               As Long = 60 '膝曲げ欠損区間
-Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_PREDICT_TIME               As Long = 61 '膝曲げ推定区間
+Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_MISSING_TIME   As Long = 60 '膝曲げ欠損区間
+Const SHIJUTEN_SHEET_COLUMN_HIZAMAGE_PREDICT_TIME   As Long = 61 '膝曲げ推定区間
 
 
 '======================================================================================
@@ -154,8 +151,7 @@ Const GH_ANGLE_HIZAMAGE_MAX As Double = 180
 '======================================================================================
 'DataAdjustingSheet用
 '======================================================================================
-'debug
-'Const LIMIT_COLUMN           As Long = 800
+
 Const LIMIT_COLUMN           As Long = 16200
 
 '======================================================================================
@@ -167,16 +163,16 @@ Const CAPTION_TRACK2_FILE_NAME_SOEJI           As String = "2" '字幕トラッ�
 '動画が縦の時
 Const TRACK1_TATE_UPPER_COEF                   As Long = 22 'トラック1用：上段
 Const TRACK1_TATE_LOWER_COEF                   As Long = 11 'トラック1用：下段
-Const TRACK2_TATE_1ST_COEF                     As Long = 22 'トラック2用：１段目
-Const TRACK2_TATE_2ND_COEF                     As Long = 22 'トラック2用：２段目
-Const TRACK2_TATE_3RD_COEF                     As Long = 13 'トラック2用：３段目
+Const TRACK2_TATE_1ST_COEF                     As Long = 22 'トラック2用：1段目
+Const TRACK2_TATE_2ND_COEF                     As Long = 22 'トラック2用：2段目
+Const TRACK2_TATE_3RD_COEF                     As Long = 13 'トラック2用：3段目
 
 '動画が横の時
 Const TRACK1_YOKO_UPPER_COEF                   As Long = 30 'トラック1用：上段
 Const TRACK1_YOKO_LOWER_COEF                   As Long = 15 'トラック1用：下段
-Const TRACK2_YOKO_1ST_COEF                     As Long = 30 'トラック2用：１段目
-Const TRACK2_YOKO_2ND_COEF                     As Long = 30 'トラック2用：２段目
-Const TRACK2_YOKO_3RD_COEF                     As Long = 18 'トラック2用：３段目
+Const TRACK2_YOKO_1ST_COEF                     As Long = 30 'トラック2用：1段目
+Const TRACK2_YOKO_2ND_COEF                     As Long = 30 'トラック2用：2段目
+Const TRACK2_YOKO_3RD_COEF                     As Long = 18 'トラック2用：3段目
 
 '各種字幕の色
 Const COLOR_DATA_REMOVE_SECTION                As String = "#bfbfbf" 'グレー
@@ -225,23 +221,6 @@ Const DATA_SEPARATION_RED_BOTTOM               As Long = 6
 Const DATA_SEPARATION_RED_TOP                  As Long = 10
 
 
-'======================================================================================
-'Sheet1シート用
-'======================================================================================
-'Const COLUMN_CYCLE           As Long = 1
-'Const COLUMN_POSE_NUM        As Long = 2
-'Const COLUMN_POSE_NAME       As Long = 3
-'Const COLUMN_TYPE            As Long = 4
-'Const COLUMN_COMPANY_TYPE    As Long = 5
-'Const COLUMN_POSE_START_TIME As Long = 6
-'Const COLUMN_POSE_KEEP_TIME  As Long = 7
-'Const COLUMN_MOVE            As Long = 8
-'Const COLUMN_forced          As Long = 9
-'Const COLUMN_COMPARTINO      As Long = 10
-
-
-
-
 '処理時間短縮のため、更新をストップ
 ' 引数1 ：なし
 ' 戻り値：なし
@@ -252,10 +231,6 @@ Function stopUpdate()
 End Function
 
 
-
-
-
-
 '処理時間短縮のため、更新をリスタート
 ' 引数1 ：なし
 ' 戻り値：なし
@@ -264,7 +239,6 @@ Function restartUpdate()
     Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
 End Function
-
 
 
 '文字列sの左側からi文字を削除する関数
@@ -297,8 +271,8 @@ End Function
 ' 引数3 ：窓の大きさ
 ' 戻り値：処理後の配列
 Function dilation(array_src() As Long, max_array_num As Long, window_size As Long)
-        Dim i As Long
-        Dim j As Long
+        Dim i           As Long
+        Dim j           As Long
         Dim array_dst() As Long
 
         '窓サイズ分の端のフラグが消えるのを防止
@@ -323,8 +297,8 @@ End Function
 ' 引数3 ：窓の大きさ
 ' 戻り値：処理後の配列
 Function erosion(array_src() As Long, max_array_num As Long, window_size As Long)
-        Dim i As Long
-        Dim j As Long
+        Dim i           As Long
+        Dim j           As Long
         Dim array_dst() As Long
 
         '窓サイズ分の端のフラグが消えるのを防止
@@ -352,41 +326,40 @@ Sub kobusiage_hantei()
     '表示・更新をオフにする
     Call stopUpdate
 
-    Dim KataPositionRz()       As Double
-    Dim KataPositionLz()       As Double
-    Dim TekubiPositionRz()     As Double
-    Dim TekubiPositionLz()     As Double
-    Dim TekubiSpeedRz()        As Double
-    Dim TekubiSpeedLz()        As Double
+    Dim KataPositionRz()                As Double
+    Dim KataPositionLz()                As Double
+    Dim TekubiPositionRz()              As Double
+    Dim TekubiPositionLz()              As Double
+    Dim TekubiSpeedRz()                 As Double
+    Dim TekubiSpeedLz()                 As Double
 
-    Dim kobushiage_missing_array()     As Long '拳上欠損フラグを格納する配列
-    Dim tekubi_zspeed_over_array()     As Long '手首位置の差のしきい値超え
-    Dim kobushiage_measure_array()     As Long '拳上測定区間
-    Dim kobushiage_array()             As Long '拳上時間
+    Dim kobushiage_missing_array()      As Long '拳上欠損フラグを格納する配列
+    Dim tekubi_zspeed_over_array()      As Long '手首位置の差のしきい値超え
+    Dim kobushiage_measure_array()      As Long '拳上測定区間
+    Dim kobushiage_array()              As Long '拳上時間
 
-    Dim kobushiage_missing_limit       As Long '拳上欠損フラグのノイズ判定しきい値
-    Dim kobushiage_missing_count       As Long '拳上欠損フラグの連続回数をカウント
-    Dim kobushiage_missing_section_num As Long '拳上欠損区間がしきい値を超える数をカウント。拳上時間の補正に使う
+    Dim kobushiage_missing_limit        As Long '拳上欠損フラグのノイズ判定しきい値
+    Dim kobushiage_missing_count        As Long '拳上欠損フラグの連続回数をカウント
+    Dim kobushiage_missing_section_num  As Long '拳上欠損区間がしきい値を超える数をカウント。拳上時間の補正に使う
 
-    Dim window_size_dilation           As Long '膨張に使う窓の大きさ
-    Dim window_size_erosion            As Long '収縮に使う窓の大きさ
-    Dim work_time                      As Double  '作業時間
-    Dim kobushiage_hosei_time          As Double  '拳上補正時間
-    Dim kobushiage_hosei_frame_num     As Long '拳上補正フレーム数
+    Dim window_size_dilation            As Long '膨張に使う窓の大きさ
+    Dim window_size_erosion             As Long '収縮に使う窓の大きさ
+    Dim work_time                       As Double  '作業時間
+    Dim kobushiage_hosei_time           As Double  '拳上補正時間
+    Dim kobushiage_hosei_frame_num      As Long '拳上補正フレーム数
 
-    Dim fps                            As Double 'フレームレート
+    Dim fps                             As Double 'フレームレート
 
-    Dim max_row_num                    As Long '行の末尾
-    Dim max_array_num                  As Long '配列の末尾
+    Dim max_row_num                     As Long '行の末尾
+    Dim max_array_num                   As Long '配列の末尾
 
-    Dim i                              As Long
-    Dim j                              As Long
+    Dim i                               As Long
+    Dim j                               As Long
 
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
         max_row_num = .Cells(1, 3).End(xlDown).row
-        'MsgBox ("max_row_num=" & max_row_num)
 
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
@@ -418,10 +391,6 @@ Sub kobusiage_hantei()
             kobushiage_missing_array(i, 0) = .Cells(i + 1 + 1, COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_ORG).Value
         Next
 
-        'デバック
-'        .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1)).Value = TekubiPositionLz
-'        .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE)).Value = TekubiPositionRz
-
         '拳上判定をして、結果を配列に格納
         For i = 0 To max_array_num
             If _
@@ -434,15 +403,6 @@ Sub kobusiage_hantei()
                 kobushiage_array(i, 0) = 0
             End If
         Next
-
-        'デバック
-'        .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1)).Value = kobushiage_array
-'        .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE)).Value = kobushiage_array
-
-
-        '拳上判定セルへ配列の値を書き込む
-'        .Range(.Cells(2, COLUMN_KOBUSHIAGE_RESULT), .Cells(max_row_num, COLUMN_KOBUSHIAGE_RESULT)).Value = kobushiage_array’デバック用
-
 
         '-------------------------------------------------------------------------------------------
         'ここから手首z方向の速度計算
@@ -458,11 +418,7 @@ Sub kobusiage_hantei()
             TekubiSpeedLz(i, 0) = CDbl(Abs(TekubiPositionLz(i, 0) - TekubiPositionLz(i - 1, 0)) * fps * 60 * 60 / 1000000)
         Next
 
-        '手首Ｚ方向の速度を記録する
-'        .Range(.Cells(2, COLUMN_TEKUBI_RZ_SPEED), .Cells(max_row_num, COLUMN_TEKUBI_RZ_SPEED)).Value = TekubiSpeedRz'デバック用
-'        .Range(.Cells(2, COLUMN_TEKUBI_LZ_SPEED), .Cells(max_row_num, COLUMN_TEKUBI_LZ_SPEED)).Value = TekubiSpeedLz'デバック用
-
-        '手首Ｚ方向の速度基準値超えのフラグ生成して、配列に格納
+        '手首Z方向の速度基準値超えのフラグ生成して、配列に格納
         For i = 0 To max_array_num
             If TEKUBI_SPEED_UPLIM_PREDICT <= TekubiSpeedRz(i, 0) Or _
                 TEKUBI_SPEED_UPLIM_PREDICT <= TekubiSpeedLz(i, 0) Then
@@ -501,18 +457,14 @@ Sub kobusiage_hantei()
             End If
         Next
 
-        '配列の値をセルに代入
-        '.Range(.Cells(2, 247), .Cells(max_row_num, 247)).Value = kobushiage_missing_array 'デバック用
-
-
         '-------------------------------------------------------------------------------------------
         'ここから拳上欠損区間修正
         '-------------------------------------------------------------------------------------------
 
         '速度基準越えのフラグ　と　ノイズ除去した拳上欠損フラグを足し合わせる
         For i = 0 To max_array_num
-             If tekubi_zspeed_over_array(i, 0) > 0 Or kobushiage_missing_array(i, 0) > 0 Then
-               kobushiage_missing_array(i, 0) = 1
+            If tekubi_zspeed_over_array(i, 0) > 0 Or kobushiage_missing_array(i, 0) > 0 Then
+                kobushiage_missing_array(i, 0) = 1
             End If
         Next
 
@@ -520,16 +472,12 @@ Sub kobusiage_hantei()
         window_size_dilation = CLng(KOBUSHIAGE_MISSING_DILATION_SIZE * fps)
         window_size_erosion = CLng(KOBUSHIAGE_MISSING_EROSION_SIZE * fps)
 
-'        .Range(.Cells(2, 251), .Cells(max_row_num, 251)).Value = kobushiage_missing_array 'デバック用
-
         '穴埋め処理
         '膨張
         kobushiage_missing_array() = dilation(kobushiage_missing_array(), max_array_num, window_size_dilation)
-'        .Range(.Cells(2, 252), .Cells(max_row_num, 252)).Value = kobushiage_missing_array 'デバック用
 
         '収縮
         kobushiage_missing_array() = erosion(kobushiage_missing_array(), max_array_num, window_size_erosion)
-'        .Range(.Cells(2, 253), .Cells(max_row_num, 253)).Value = kobushiage_missing_array 'デバック用
 
         '拳上げ測定フラグの生成
         For i = 0 To max_array_num
@@ -543,7 +491,6 @@ Sub kobusiage_hantei()
         '拳上測定、欠損セルへ配列の値を書き込む
         .Range(.Cells(2, COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_DST), .Cells(max_row_num, COLUMN_DATA_KOBUSHIAGE_MEASURE_SECTION_DST)).Value = kobushiage_measure_array
         .Range(.Cells(2, COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST), .Cells(max_row_num, COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST)).Value = kobushiage_missing_array
-
 
         '-------------------------------------------------------------------------------------------
         'ここから拳上フラグ修正
@@ -576,9 +523,6 @@ Sub kobusiage_hantei()
         '拳上時間の補正時間を計算する。（作業時間と欠損時間の閾値超え回数から）
         kobushiage_hosei_time = (work_time * KOBUSHIAGE_TIME_HOSEI_COEF_WORK) + (KOBUSHIAGE_TIME_HOSEI_COEF_MISSING * kobushiage_missing_section_num)
 
-        '拳上欠損区間がしきい値より長いかたまりの数を書き出す
-'        ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(2, 51).Value = kobushiage_hosei_time 'デバック用
-
         '拳上補正時間からフレーム数を計算
         kobushiage_hosei_frame_num = WorksheetFunction.RoundUp(kobushiage_hosei_time * fps, 0)
 
@@ -601,7 +545,7 @@ Sub kobusiage_hantei()
         '補正後の拳上時間配列をセルに貼り付け
         .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE - 1)).Value = kobushiage_array
         .Range(.Cells(2, COLUMN_DATA_RESULT_GH_KOBUSHIAGE), .Cells(max_row_num, COLUMN_DATA_RESULT_GH_KOBUSHIAGE)).Value = kobushiage_array
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
     '表示・更新をオンに戻す
     Call restartUpdate
@@ -621,48 +565,46 @@ Sub makeGraphJisya()
     Call kobusiage_hantei
 
     '条件設定シートから読み込むパラメータ
-    Dim AngleKoshiMin  As Double
-    Dim AngleKoshiMax  As Double
+    Dim AngleKoshiMin       As Double
+    Dim AngleKoshiMax       As Double
 
-    Dim AngleHizaMin   As Double
-    Dim AngleHizaMax   As Double
+    Dim AngleHizaMin        As Double
+    Dim AngleHizaMax        As Double
 
     '関節角度のデータを読み込む変数
-    Dim ValAngleKoshi   As Double
-    Dim ValAngleHizaR   As Double
-    Dim ValAngleHizaL   As Double
+    Dim ValAngleKoshi       As Double
+    Dim ValAngleHizaR       As Double
+    Dim ValAngleHizaL       As Double
 
     '判定結果を格納する配列
-    Dim KoshimageArray() As Double
-    Dim HizamageArray()  As Double
+    Dim KoshimageArray()    As Double
+    Dim HizamageArray()     As Double
 
     '外販用の膝角度
     '社内と定義が異なるため注意
-    Dim HizaAngleLArray() As Double
-    Dim HizaAngleRArray() As Double
+    Dim HizaAngleLArray()   As Double
+    Dim HizaAngleRArray()   As Double
 
 
     'その他変数
-    Dim start_frame            As Long
-    Dim end_frame              As Long
-    Dim fps                    As Double 'フレームレート
-    Dim correctPose            As Boolean
-    Dim mSeconds               As String
-    Dim totalSecond            As Long
-    Dim tempSecond             As Long
-    Dim hour, min, sec         As Long
-    Dim t                      As Date
-    Dim ds                     As String
+    Dim start_frame         As Long
+    Dim end_frame           As Long
+    Dim fps                 As Double 'フレームレート
+    Dim correctPose         As Boolean
+    Dim mSeconds            As String
+    Dim totalSecond         As Long
+    Dim tempSecond          As Long
+    Dim hour, min, sec      As Long
+    Dim t                   As Date
+    Dim ds                  As String
 
-    Dim max_row_num            As Long '行の末尾
-    Dim max_array_num          As Long '配列の末尾
+    Dim max_row_num         As Long '行の末尾
+    Dim max_array_num       As Long '配列の末尾
 
-    Dim i                      As Long
-    Dim j                      As Long
-    Dim data_no                As Long
-
+    Dim i                   As Long
+    Dim j                   As Long
+    Dim data_no             As Long
     Dim PointCalcSheetArray As Variant
-
 
     '判定のしきい値を代入
     AngleKoshiMin = GH_ANGLE_KOSHIMAGE_MIN
@@ -671,14 +613,10 @@ Sub makeGraphJisya()
     AngleHizaMin = GH_ANGLE_HIZAMAGE_MIN
     AngleHizaMax = GH_ANGLE_HIZAMAGE_MAX
 
-
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
         max_row_num = .Cells(1, 3).End(xlDown).row
-
-        'デバッグ用
-        'MsgBox ("max_row_num=" & max_row_num)
 
         'ポイント計算シートの中身を配列に読込
         PointCalcSheetArray = .Range(.Cells(1, 1), .Cells(max_row_num, COLUMN_MAX_NUMBER))
@@ -757,7 +695,7 @@ Sub makeGraphJisya()
         .Range(.Cells(2, COLUMN_GH_HIZA_L), .Cells(max_row_num, COLUMN_GH_HIZA_L)).Value = HizaAngleLArray
         .Range(.Cells(2, COLUMN_GH_HIZA_R), .Cells(max_row_num, COLUMN_GH_HIZA_R)).Value = HizaAngleRArray
 
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
     '表示・更新をオンに戻す
     Call restartUpdate
@@ -805,9 +743,9 @@ Sub makeGraphZensya()
     Dim j                      As Long
     Dim data_no                As Long
 
-    Dim CaptionName3Kobushiage      As String '字幕トラック2用 ３段目 拳上の字幕文字列
-    Dim CaptionName3Koshimage       As String '字幕トラック2用 ３段目 腰曲げの字幕文字列
-    Dim CaptionName3Hizamage        As String '字幕トラック2用 ３段目 膝曲げの字幕文字列
+    Dim CaptionName3Kobushiage As String '字幕トラック2用 ３段目 拳上の字幕文字列
+    Dim CaptionName3Koshimage  As String '字幕トラック2用 ３段目 腰曲げの字幕文字列
+    Dim CaptionName3Hizamage   As String '字幕トラック2用 ３段目 膝曲げの字幕文字列
     Dim Koshimage              As Double '字幕トラック2用 腰曲げ判定用の閾値
     Dim Hizamage               As Double '字幕トラック2用 膝曲げ判定用の閾値
 
@@ -883,18 +821,15 @@ Sub makeGraphZensya()
         CaptionName3Hizamage = .Cells(228, 2)
         Hizamage = .Cells(230, 7)
 
-    End With 'With ThisWorkbook.Worksheets("条件設定シート")
+    End With
 
 
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
         max_row_num = .Cells(1, 3).End(xlDown).row
-        'MsgBox ("max_row_num=" & max_row_num)
 
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
-
-
 
         '姿勢判定してセルに代入
         For i = 2 To max_row_num
@@ -950,7 +885,7 @@ Sub makeGraphZensya()
                 '判定結果を字幕＆集計用セルに入力
                 .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 1
             End If
-        Next ' For i = 2 To max_row_num
+        Next
 
         'グラフ描画の色分けのためのフラグ生成
         For i = 2 To max_row_num
@@ -978,17 +913,13 @@ Sub makeGraphZensya()
                 .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = 0
                 .Cells(i, COLUMN_DATA_RESULT_RED).Value = data_no
             End If
-        Next ' i = 2 To max_row_num
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+        Next
+    End With
 
     '表示・更新をオンに戻す
     Call restartUpdate
 
 End Sub
-
-
-
-
 
 
 '姿勢素点の字幕、フラグのノイズを消去する
@@ -1013,9 +944,8 @@ Function removeCaptionNoise(fps As Double)
     Dim compareValue  As String
 
     Dim sameValueNum  As Long
-    Dim noise_num     As Long
+    Dim noise_num     As Long: noise_num = CAPTION_REMOVE_NOISE_SECOND * fps
 
-    noise_num = CAPTION_REMOVE_NOISE_SECOND * fps
     If noise_num < 2 Then
         noise_num = 2
     End If
@@ -1028,7 +958,6 @@ Function removeCaptionNoise(fps As Double)
         '処理する行数を取得（3列目の最終セル）
         max_row_num = .Cells(1, 3).End(xlDown).row
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
-        'MsgBox ("max_row_num=" & max_row_num)
 
         '下方向へ探索する際の起点(i), 終点(i_max)
         i_max = max_row_num - noise_num - 1
@@ -1067,7 +996,7 @@ Function removeCaptionNoise(fps As Double)
                 End If
             End If
         Next
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
     '表示・更新をオンに戻す
     Call restartUpdate
@@ -1105,37 +1034,37 @@ Sub fixSheetJisya()
 
     Dim fps As Double
 
-    Dim separate_work_time        As Double 'tとt0の差を取得する
-    Dim t0                        As Double '1つ前のtを一時保存する
-    Dim t                         As Double '作業時間
+    Dim separate_work_time  As Double 'tとt0の差を取得する
+    Dim t0                  As Double '1つ前のtを一時保存する
+    Dim t                   As Double '作業時間
 
-    Dim i                         As Long
-    Dim j                         As Long
+    Dim i                   As Long
+    Dim j                   As Long
 
-    Dim max_row_num               As Long
+    Dim max_row_num         As Long
 
-    Dim expand_no                 As Long '追加された行数を調べるために使う
+    Dim expand_no           As Long '追加された行数を調べるために使う
 
-    Dim Kobushiage_flag           As Long
-    Dim koshimage_flag             As Long
-    Dim hizamage_flag             As Long
+    Dim Kobushiage_flag     As Long
+    Dim koshimage_flag      As Long
+    Dim hizamage_flag       As Long
 
-    Dim start_frame               As Long
-    Dim end_frame                 As Long
+    Dim start_frame         As Long
+    Dim end_frame           As Long
 
-    Dim data_no                   As Long
+    Dim data_no             As Long
 
-    Dim top_jogai_end             As Long
-    Dim bottom_jogai_start        As Long
+    Dim top_jogai_end       As Long
+    Dim bottom_jogai_start  As Long
 
-    Dim worktime_sum              As Double
+    Dim worktime_sum        As Double
 
-    Dim seconds          As Double
-    Dim hours            As String
-    Dim minutes          As String
-    Dim remainingSeconds As String
-    Dim milliseconds     As String
-    Dim format_time      As String
+    Dim seconds             As Double
+    Dim hours               As String
+    Dim minutes             As String
+    Dim remainingSeconds    As String
+    Dim milliseconds        As String
+    Dim format_time         As String
 
     'フレームレートを取得
     fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
@@ -1163,7 +1092,6 @@ Sub fixSheetJisya()
         '作業終了時間が空の場合は、ポイント計算シート最終行から計算して入力
         If IsEmpty(.Cells(GH_HYOUKA_SHEET_ROW_POSESTART, GH_HYOUKA_SHEET_COLUMN_WORKEND_TIME)) = True Then
             seconds = max_row_num / fps 'ここに変換したい秒数を入力してください
-            ' seconds = ThisWorkbook.Worksheets("ポイント計算シート").Cells(max_row_num, COLUMN_POSE_KEEP_TIME).Value
 
             format_time = timeConvert(seconds)
 
@@ -1179,7 +1107,7 @@ Sub fixSheetJisya()
                 '0秒にする
                 ThisWorkbook.Sheets("工程評価シート").Cells(GH_HYOUKA_SHEET_ROW_POSESTART, GH_HYOUKA_SHEET_COLUMN_WORKSTART_TIME).Value = 0
 
-            '除外フラグの先頭が１の時
+            '除外フラグの先頭が1の時
             ElseIf .Cells(2, COLUMN_DATA_REMOVE_SECTION) = 1 Then
                 'リセット
                 top_jogai_end = 0
@@ -1196,7 +1124,7 @@ Sub fixSheetJisya()
 
                 ThisWorkbook.Sheets("工程評価シート").Cells(GH_HYOUKA_SHEET_ROW_POSESTART, GH_HYOUKA_SHEET_COLUMN_WORKSTART_TIME).Value = format_time
             End If
-        End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+        End With
 
         'ここから作業分割に関する処理
         For i = 0 To GH_HYOUKA_SHEET_ROW_EXPAND_NUMBER_CHECK - GH_HYOUKA_SHEET_ROW_POSESTART - 1 + expand_no
@@ -1225,7 +1153,6 @@ Sub fixSheetJisya()
                     '動画の末尾に除外がない場合、ポイント計算シート最終行から作業終了時間を計算して入力する
                     If ThisWorkbook.Worksheets("ポイント計算シート").Cells(max_row_num, COLUMN_DATA_REMOVE_SECTION).Value <> 1 Then
                         seconds = max_row_num / fps 'ここに変換したい秒数を入力してください
-                        ' seconds = ThisWorkbook.Worksheets("ポイント計算シート").Cells(max_row_num, COLUMN_POSE_KEEP_TIME).Value
 
                         format_time = timeConvert(seconds)
 
@@ -1266,7 +1193,7 @@ Sub fixSheetJisya()
             End If
         Next
 
-    End With 'With ThisWorkbook.Sheets("工程評価シート")
+    End With
 
     '時間を初期値に設定
     separate_work_time = 0
@@ -1335,7 +1262,7 @@ Sub fixSheetJisya()
                         End If
                     Next
                 End If
-            End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+            End With
 
             'ここからカウントしたフラグを時間に変換して、工程評価シートに入力
             With ThisWorkbook.Sheets("工程評価シート")
@@ -1366,7 +1293,7 @@ Sub fixSheetJisya()
                     '姿勢要素時間（フレーム数）があれば代入する
                     .Cells(GH_HYOUKA_SHEET_ROW_POSESTART + i, GH_HYOUKA_SHEET_COLUMN_HIZAMAGE_TIME).Value = hizamage_flag / fps
                 End If
-            End With 'With ThisWorkbook.Sheets("工程評価シート")
+            End With
         End If
     Next
 
@@ -1386,62 +1313,56 @@ Sub fixSheetZensya()
 
     '表示・更新をオフにする
     Call stopUpdate
-    Dim fps As Double
+    Dim fps                         As Double
+    Dim separate_work_time          As Double 'tとt0の差を取得する
+    Dim t0                          As Double '1つ前のtを一時保存する
+    Dim t                           As Double '作業時間
 
-    Dim separate_work_time        As Double 'tとt0の差を取得する
-    Dim t0                        As Double '1つ前のtを一時保存する
-    Dim t                         As Double '作業時間
+    Dim i                           As Long
+    Dim j                           As Long
+    Dim k                           As Long
+    Dim l                           As Long
 
-    Dim i                         As Long
-    Dim j                         As Long
-    Dim k                         As Long
-    Dim l                         As Long
+    Dim max_row_num                 As Long
 
-    Dim max_row_num               As Long
+    Dim expand_no                   As Long '処理行数拡張用
+    Dim data_flag                   As Long '姿勢素点の データ除外（0） または データ強制（1～10）フラグ記憶用 左記に該当しない場合は-1を入れて使う
 
-    Dim expand_no                 As Long '処理行数拡張用
-    Dim data_flag                 As Long '姿勢素点の データ除外（0） または データ強制（1～10）フラグ記憶用 左記に該当しない場合は-1を入れて使う
+    Dim top_jogai_end               As Long
+    Dim bottom_jogai_start          As Long
 
-    Dim top_jogai_end             As Long
-    Dim bottom_jogai_start        As Long
+    Dim Kobushiage_flag             As Long '拳上の データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
+    Dim koshimage_flag              As Long '腰曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
+    Dim hizamage_flag               As Long '膝曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
 
-    Dim Kobushiage_flag           As Long '拳上の データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
-    Dim koshimage_flag            As Long '腰曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
-    Dim hizamage_flag             As Long '膝曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
+    Dim start_frame                 As Long
+    Dim end_frame                   As Long
+    Dim start_array_num             As Long
+    Dim end_array_num               As Long
 
-    Dim start_frame               As Long
-    Dim end_frame                 As Long
-    Dim start_array_num           As Long
-    Dim end_array_num             As Long
+    Dim data_array(15)              As Long '姿勢重量点１～１０点、欠損区間、推定区間、拳上、腰曲げ、膝曲げの時間を合計するために使用
+    Dim data_no                     As Long  'data_arrayの配列番号。1～10:姿勢重量点 11:欠損区間 12:推定区間 13:拳上 14:腰曲げ 15:膝曲げ
 
-    Dim data_array(15)            As Long '姿勢重量点１～１０点、欠損区間、推定区間、拳上、腰曲げ、膝曲げの時間を合計するために使用
-    Dim data_no                   As Long  'data_arrayの配列番号。1～10:姿勢重量点 11:欠損区間 12:推定区間 13:拳上 14:腰曲げ 15:膝曲げ
+    Dim removeFrames                As Long
+    Dim separate_removeFrames       As Long
+    Dim workFrames                  As Long
 
-    Dim removeFrames              As Long
-    Dim separate_removeFrames     As Long
-    Dim workFrames                As Long
+    Dim separate_KOBUSHIAGE_missing As Double '作業分割後　拳上欠損区間
+    Dim separate_koshimage_missing  As Double '作業分割後　腰曲げ欠損区間
+    Dim separate_koshimage_predict  As Double '作業分割後　腰曲げ推定区間
+    Dim separate_hizamage_missing   As Double '作業分割後　膝曲げ欠損区間
+    Dim separate_hizamage_predict   As Double '作業分割後　膝曲げ推定区間
 
-    Dim separate_KOBUSHIAGE_missing   As Double '作業分割後　拳上欠損区間
-    Dim separate_koshimage_missing    As Double '作業分割後　腰曲げ欠損区間
-    Dim separate_koshimage_predict    As Double '作業分割後　腰曲げ推定区間
-    Dim separate_hizamage_missing     As Double '作業分割後　膝曲げ欠損区間
-    Dim separate_hizamage_predict     As Double '作業分割後　膝曲げ推定区間
-
-    Dim seconds          As Double
-    Dim hours            As String
-    Dim minutes          As String
-    Dim remainingSeconds As String
-    Dim milliseconds     As String
-    Dim format_time      As String
-
-    Dim val As Double
-
-    Dim lastInputRow As Long
-    lastInputRow = 1
-
-    Dim intermediateFlag As Boolean
-
-    Dim sheet_index As Long
+    Dim seconds                     As Double
+    Dim hours                       As String
+    Dim minutes                     As String
+    Dim remainingSeconds            As String
+    Dim milliseconds                As String
+    Dim format_time                 As String
+    Dim val                         As Double
+    Dim lastInputRow                As Long: lastInputRow = 1
+    Dim intermediateFlag            As Boolean
+    Dim sheet_index                 As Long
 
     'フレームレートを取得
     fps = s_PointCalc.Cells(2, 199)
@@ -1479,7 +1400,7 @@ Sub fixSheetZensya()
         '0秒にする
         s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.00"
 
-    '除外フラグの先頭が１の時
+    '除外フラグの先頭が1の時
     ElseIf s_PointCalc.Cells(2, COLUMN_DATA_REMOVE_SECTION) = 1 Then
         'リセット
         top_jogai_end = 0
@@ -1801,6 +1722,7 @@ Function outputCaption(movieName As String)
     Dim start_frame                 As Double
     Dim end_frame                   As Double
     Dim fps                         As Double
+
     '表示・更新をオフにする
     Call stopUpdate
 
@@ -1813,16 +1735,16 @@ Function outputCaption(movieName As String)
     If video_width < video_height Then
         track1_coef_font_size1 = TRACK1_TATE_UPPER_COEF  '動画が縦のときのトラック1用：上段
         track1_coef_font_size2 = TRACK1_TATE_LOWER_COEF
-        track2_coef_font_size1 = TRACK2_TATE_1ST_COEF    'トラック2用：１段目
-        track2_coef_font_size2 = TRACK2_TATE_2ND_COEF    'トラック2用：２段目
-        track2_coef_font_size3 = TRACK2_TATE_3RD_COEF    'トラック2用：３段目
+        track2_coef_font_size1 = TRACK2_TATE_1ST_COEF    'トラック2用：1段目
+        track2_coef_font_size2 = TRACK2_TATE_2ND_COEF    'トラック2用：2段目
+        track2_coef_font_size3 = TRACK2_TATE_3RD_COEF    'トラック2用：3段目
     '動画が横の時
     Else
         track1_coef_font_size1 = TRACK1_YOKO_UPPER_COEF  '動画が縦のときのトラック1用：上段
         track1_coef_font_size2 = TRACK1_YOKO_LOWER_COEF
-        track2_coef_font_size1 = TRACK2_YOKO_1ST_COEF    'トラック2用：１段目
-        track2_coef_font_size2 = TRACK2_YOKO_2ND_COEF    'トラック2用：２段目
-        track2_coef_font_size3 = TRACK2_YOKO_3RD_COEF    'トラック2用：３段目
+        track2_coef_font_size1 = TRACK2_YOKO_1ST_COEF    'トラック2用：1段目
+        track2_coef_font_size2 = TRACK2_YOKO_2ND_COEF    'トラック2用：2段目
+        track2_coef_font_size3 = TRACK2_YOKO_3RD_COEF    'トラック2用：3段目
     End If
 
     'フォントサイズを設定
@@ -1848,7 +1770,7 @@ Function outputCaption(movieName As String)
         CaptionName3Kobushiage = .Cells(192, 2)
         CaptionName2Koshimage = .Cells(210, 2)
         CaptionName2Hizamage = .Cells(228, 2)
-    End With 'With ThisWorkbook.Worksheets("条件設定シート")
+    End With
 
     '評価除外用
     CaptionName2(0) = "0-姿勢評価なし" '下段のキャプション名を表示しない
@@ -1856,15 +1778,11 @@ Function outputCaption(movieName As String)
     Track1FileName = ActiveWorkbook.Path & "\" & movieName & ".srt"
     Track2FileName = ActiveWorkbook.Path & "\" & movieName & CAPTION_TRACK2_FILE_NAME_SOEJI & ".srt"
 
-
-
-
     'フレームレートの読み出し
     fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
 
     '処理する行数を取得（3列目の最終セル）
     max_row_num = ThisWorkbook.Sheets("ポイント計算シート").Cells(1, 3).End(xlDown).row
-    'MsgBox ("max_row_num=" & max_row_num)
 
     max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
@@ -1928,20 +1846,12 @@ Function outputCaption(movieName As String)
             End If
         Next
 
-    End With 'With ThisWorkbook.Sheets("工程評価シート")
-
-
-
-
-
-
-
+    End With
 
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         'ファイルを開く
         Open Track1FileName For Output As #1
-        'Open Track2FileName For Output As #2 '字幕トラック2不要なためコメントアウト
 
         '処理する行数を取得（3列目の最終セル）
         max_row_num = .Cells(1, 3).End(xlDown).row
@@ -1950,13 +1860,7 @@ Function outputCaption(movieName As String)
         For i = 2 To max_row_num
 
             'ポイント計算シートのキャプション列より、姿勢重量点調査票の作業名を先に読み取っておく
-            'CaptionName0 = .Cells(i, COLUMN_CAPTION_WORK_NAME).Value
             CaptionName0 = WorkName(i - 2, 0)
-
-
-           '////////////////////////////////////////
-            '// 字幕トラック1用の処理 ここから
-            '//
 
             'データ区間の描画色、キャプション名を設定する
             '※はじめに評価除外、データ強制区間、データ不良区間の順に判定する（重複ビットON時、字幕表示の優先度が高い順）
@@ -1995,53 +1899,12 @@ Function outputCaption(movieName As String)
                 End If
             End If
 
-            '▽拳上を一時的に除外
-            ''挙上
-            ''除外
-            'If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
-            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_REMOVE_SECTION
-            '    ColorName2Kobushiage = COLOR_DATA_REMOVE_SECTION
-            ''強制
-            'ElseIf .Cells(i, COLUMN_KOBUSHIAGE_FORCED_SECTION).Value > 0 Then
-            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_FORCED_SECTION
-            '    ColorName2Kobushiage = COLOR_DATA_FORCED_SECTION
-            ''欠損
-            'ElseIf .Cells(i, COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST).Value > 0 Then
-            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_MISSING_SECTION
-            '    ColorName2Kobushiage = COLOR_DATA_MISSING_SECTION
-            ''測定
-            'Else
-            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_MEASURE_SECTION
-            '    ColorName2Kobushiage = COLOR_DATA_MEASURE_SECTION
-            'End If
-            '
-            '拳上
-            'If .Cells(i, COLUMN_KOBUSHIAGE_RESULT).Value > 0 Then
-            '    CaptionName3Kobushiage = "<b>" & CAPTION_A_RESULT_NAME1 & "</b>"
-            '    ColorName3Kobushiage = COLOR_DATA_RESULT_RED
-            'Else
-            '    CaptionName3Kobushiage = "<b>" & CAPTION_A_RESULT_NAME1 & "</b>"
-            '    ColorName3Kobushiage = COLOR_DATA_RESULT_GLAY
-            'End If
-
-
-            '字幕文字列を生成
-            'Track1OutputString1 = _
-            '    "<font size=""" & track1_font_size1 & """ color =" & "#ffffff" & ">" & CaptionName0 & "</font>" & _
-            '    "<font size=""" & track1_font_size1 & """ color =" & ColorName1 & ">" & CaptionName1 & "</font>" & _
-            '    "<font size=""" & track1_font_size1 & """ color =" & ColorName3Kobushiage & ">" & CaptionName3Kobushiage & "</font>" & _
-            '    "<font size=""" & track1_font_size1 & """ color =" & ColorName3Kobushiage & ">" & "    " & "</font>"
             Track1OutputString1 = _
                 "<font size=""" & track1_font_size1 & """ color =" & "#ffffff" & ">" & CaptionName0 & "</font>" & _
                 "<font size=""" & track1_font_size1 & """ color =" & ColorName1 & ">" & CaptionName1 & "</font>"
-            '▽END_拳上を一時的に除外
 
             Track1OutputString2 = _
                 "<font size=""" & track1_font_size2 & """ color =" & ColorName2 & ">" & CaptionName2(CaptionNo2) & "</font>"
-
-            '字幕文字列をポイント計算シートに出力
-            'デバッグ用（普段は使わない）
-            '.Cells(i, COLUMN_CAPTION_TRACK1).Value = Track1OutputString1 & Track1OutputString2
 
             '字幕文字列をテキストファイルに書き出しする
             Print #1, " " & i - 1 '数字の両側に半角スペースを入れる。字幕トラック2と区別するため
@@ -2052,166 +1915,6 @@ Function outputCaption(movieName As String)
 
             Print #1, ""
             Print #1, ""
-
-
-            '//
-            '// 字幕トラック1用の処理 ここまで
-            '////////////////////////////////////////
-
-
-'字幕トラック2不要なためコメントアウト
-'            '////////////////////////////////////////
-'            '// 字幕トラック2用の処理 ここから
-'            '//
-'
-'            'データ区間の描画色、キャプション名を設定する
-'            '※はじめに評価除外、データ強制区間、データ不良区間の順に判定する（重複ビットON時、字幕表示の優先度が高い順）
-'            ' 今のところ最後のfillDataで測定ビットは同時に立つ仕様。
-'
-'           '1段目の描画色、キャプション名は字幕トラック1用上段用の作業No.と作業名を流用するため、ここでは処理なし
-'           '2段目の描画色、キャプション名を設定する（データの信頼性）
-'
-'            '▽拳上を一時的に除外
-'            ''ここから拳上
-'            ''除外
-'            'If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
-'            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_REMOVE_SECTION
-'            '    ColorName2Kobushiage = COLOR_DATA_REMOVE_SECTION
-'            ''強制
-'            'ElseIf .Cells(i, COLUMN_KOBUSHIAGE_FORCED_SECTION).Value > 0 Then
-'            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_FORCED_SECTION
-'            '    ColorName2Kobushiage = COLOR_DATA_FORCED_SECTION
-'            ''欠損
-'            'ElseIf .Cells(i, COLUMN_DATA_KOBUSHIAGE_MISSING_SECTION_DST).Value > 0 Then
-'            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_MISSING_SECTION
-'            '    ColorName2Kobushiage = COLOR_DATA_MISSING_SECTION
-'            ''測定
-'            'Else
-'            '    CaptionName2Kobushiage = CAPTION_DATA_TRACK2_MEASURE_SECTION
-'            '    ColorName2Kobushiage = COLOR_DATA_MEASURE_SECTION
-'            'End If
-'            '▽拳上を一時的に除外
-'
-'            'ここから腰曲げ
-'            '除外
-'            If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
-'                CaptionName2Koshimage = CAPTION_DATA_TRACK2_REMOVE_SECTION
-'                ColorName2Koshimage = COLOR_DATA_REMOVE_SECTION
-'            '強制
-'            ElseIf .Cells(i, COLUMN_KOSHIMAGE_FORCED_SECTION).Value > 0 Then
-'                CaptionName2Koshimage = CAPTION_DATA_TRACK2_FORCED_SECTION
-'                ColorName2Koshimage = COLOR_DATA_FORCED_SECTION
-'            '欠損
-'            ElseIf .Cells(i, COLUMN_DATA_KOSHIMAGE_MISSING_SECTION).Value > 0 Then
-'                CaptionName2Koshimage = CAPTION_DATA_TRACK2_MISSING_SECTION
-'                ColorName2Koshimage = COLOR_DATA_MISSING_SECTION
-'            '測定
-'            ElseIf .Cells(i, COLUMN_DATA_KOSHIMAGE_MEASURE_SECTION).Value > 0 Then
-'                CaptionName2Koshimage = CAPTION_DATA_TRACK2_MEASURE_SECTION
-'                ColorName2Koshimage = COLOR_DATA_MEASURE_SECTION
-'            '推定
-'            ElseIf .Cells(i, COLUMN_DATA_KOSHIMAGE_PREDICT_SECTION).Value > 0 Then
-'                CaptionName2Koshimage = CAPTION_DATA_TRACK2_PREDICT_SECTION
-'                ColorName2Koshimage = COLOR_DATA_PREDICT_SECTION
-'            End If
-'
-'            'ここから膝曲げ
-'            '除外
-'            If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
-'                CaptionName2Hizamage = CAPTION_DATA_TRACK2_REMOVE_SECTION
-'                ColorName2Hizamage = COLOR_DATA_REMOVE_SECTION
-'            '強制
-'            ElseIf .Cells(i, COLUMN_HIZAMAGE_FORCED_SECTION).Value > 0 Then
-'                CaptionName2Hizamage = CAPTION_DATA_TRACK2_FORCED_SECTION
-'                ColorName2Hizamage = COLOR_DATA_FORCED_SECTION
-'            '欠損
-'            ElseIf .Cells(i, COLUMN_DATA_HIZAMAGE_MISSING_SECTION).Value > 0 Then
-'                CaptionName2Hizamage = CAPTION_DATA_TRACK2_MISSING_SECTION
-'                ColorName2Hizamage = COLOR_DATA_MISSING_SECTION
-'            '測定
-'            ElseIf .Cells(i, COLUMN_DATA_HIZAMAGE_MEASURE_SECTION).Value > 0 Then
-'                CaptionName2Hizamage = CAPTION_DATA_TRACK2_MEASURE_SECTION
-'                ColorName2Hizamage = COLOR_DATA_MEASURE_SECTION
-'            '推定
-'            ElseIf .Cells(i, COLUMN_DATA_HIZAMAGE_PREDICT_SECTION).Value > 0 Then
-'                CaptionName2Hizamage = CAPTION_DATA_TRACK2_PREDICT_SECTION
-'                ColorName2Hizamage = COLOR_DATA_PREDICT_SECTION
-'            End If
-'
-'
-'
-'            '３段目の描画色、キャプション名を設定する
-'            '▽拳上を一時的に除外
-'            '拳上
-'            'If .Cells(i, COLUMN_KOBUSHIAGE_RESULT).Value > 0 Then
-'            '    CaptionName3Kobushiage = "<b>" & CAPTION_A_RESULT_NAME1 & "</b>"
-'            '    ColorName3Kobushiage = COLOR_DATA_RESULT_RED
-'            'Else
-'            '    CaptionName3Kobushiage = "<b>" & CAPTION_A_RESULT_NAME1 & "</b>"
-'            '    ColorName3Kobushiage = COLOR_DATA_RESULT_GLAY
-'            'End If
-'            '▽END_拳上を一時的に除外
-'
-'            '腰曲げ
-'            If .Cells(i, COLUMN_KOSHIMAGE_RESULT).Value > 0 Then
-'                CaptionName3Koshimage = "<b>" & CAPTION_B_RESULT_NAME1 & "</b>"
-'                ColorName3Koshimage = COLOR_DATA_RESULT_RED
-'            Else
-'                CaptionName3Koshimage = "<b>" & CAPTION_B_RESULT_NAME1 & "</b>"
-'                ColorName3Koshimage = COLOR_DATA_RESULT_GLAY
-'            End If
-'
-'            '膝曲げ
-'            If .Cells(i, COLUMN_HIZAMAGE_RESULT).Value > 0 Then
-'                CaptionName3Hizamage = "<b>" & CAPTION_C_RESULT_NAME1 & "</b>"
-'                ColorName3Hizamage = COLOR_DATA_RESULT_RED
-'            Else
-'                CaptionName3Hizamage = "<b>" & CAPTION_C_RESULT_NAME1 & "</b>"
-'                ColorName3Hizamage = COLOR_DATA_RESULT_GLAY
-'            End If
-'
-'            '字幕文字列を決定
-'            Track2OutputString1 = _
-'                "<font size=""" & track2_font_size1 & """ color =" & "#ffffff" & ">" & CaptionName0 & "</font>"
-'
-'            Track2OutputString2 = _
-'                "<font size=""" & track2_font_size2 & """ color =" & ColorName2Kobushiage & ">" & CaptionName2Kobushiage & "</font>" & _
-'                "<font size=""" & track2_font_size2 & """ color =" & ColorName2Kobushiage & ">" & "          " & "</font>" & _
-'                "<font size=""" & track2_font_size2 & """ color =" & ColorName2Koshimage & ">" & CaptionName2Koshimage & "</font>" & _
-'                "<font size=""" & track2_font_size2 & """ color =" & ColorName2Kobushiage & ">" & "          " & "</font>" & _
-'                "<font size=""" & track2_font_size2 & """ color =" & ColorName2Hizamage & ">" & CaptionName2Hizamage & "</font>"
-'
-'            '▽拳上を一時的に除外
-'            'Track2OutputString3 = _
-'            '    "<font size=""" & track2_font_size3 & """ color =" & ColorName3Kobushiage & ">" & CaptionName3Kobushiage & "</font>" & _
-'            '    "<font size=""" & track2_font_size3 & """ color =" & ColorName3Kobushiage & ">" & "    " & "</font>" & _
-'            '    "<font size=""" & track2_font_size3 & """ color =" & ColorName3Koshimage & ">" & CaptionName3Koshimage & "</font>" & _
-'            '    "<font size=""" & track2_font_size3 & """ color =" & ColorName3Kobushiage & ">" & "    " & "</font>" & _
-'            '    "<font size=""" & track2_font_size3 & """ color =" & ColorName3Hizamage & ">" & CaptionName3Hizamage & "</font>"
-'
-'            Track2OutputString3 = _
-'                "<font size=""" & track2_font_size3 & """ color =" & ColorName3Koshimage & ">" & CaptionName3Koshimage & "</font>" & _
-'                "<font size=""" & track2_font_size3 & """ color =" & ColorName3Hizamage & ">" & CaptionName3Hizamage & "</font>"
-'            '▽END_拳上を一時的に除外
-'
-'            '字幕文字列をポイント計算シートに出力
-'            'デバッグ用（普段は使わない）
-'            '.Cells(i, COLUMN_CAPTION_TRACK2).Value = Track1OutputString1 & Track1OutputString2
-'
-'            'テキストファイルにその他字幕文字列を書き出し
-'            Print #2, "  " & i - 1 '数字の前に半角スペースを2個入れる。字幕トラック1と区別するため
-'            Print #2, .Cells(i, COLUMN_ROUGH_TIME).Value&; " --> " & .Cells(i + 1, COLUMN_ROUGH_TIME).Value '時刻を出力
-'
-'            Print #2, Replace(Track2OutputString1, vbLf, vbCrLf) '改行コードを置き換え、キャプション出力
-'            Print #2, Replace(Track2OutputString2, vbLf, vbCrLf) '改行コードを置き換え、キャプション出力
-'            Print #2, Replace(Track2OutputString3, vbLf, vbCrLf) '改行コードを置き換え、キャプション出力
-'
-'            Print #2, ""
-'            Print #2, ""
-'
-'            '//
-'            '// 字幕トラック2用の処理 ここまで
-'            '////////////////////////////////////////
 
             'ポイント計算シートの字幕文字列 作業No. - 作業名をクリア
             .Cells(i, COLUMN_CAPTION_WORK_NAME).clear
@@ -2228,7 +1931,7 @@ Function outputCaption(movieName As String)
         Close #2
 
 
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
     '表示・更新をオンに戻す
     Call restartUpdate
@@ -2252,7 +1955,6 @@ Function ClickUpdateDataCore()
     Call removeCaptionNoise(fps)
 
     '作業分割、時間測定
-'    Call fixSheetJisya
     Call fixSheetZensya
 
 
@@ -2271,7 +1973,6 @@ End Function
 Sub ClickUpdateData()
     Call ClickUpdateDataCore
 End Sub
-
 
 
 ' 概要 : 関節角度、3dデータのcsvをコピー貼り付けする
@@ -2293,7 +1994,7 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
         .ScreenUpdating = False
         .EnableEvents = False
         .Calculation = xlCalculationManual
-    End With 'With Application
+    End With
 
     s_PointCalc.Visible = True
     Sheets("ポイント計算シート").Select
@@ -2316,14 +2017,13 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
 
         '保存せず終了
         .Close False
-    End With 'With wb
+    End With
 
     ' A から C の時間を表すセルを実体化させる
     ' angle.csvを張り付けたあとの最下行番号を取得する
     MaxRow = Range("D2").End(xlDown).row
     For i = 0 To MaxRow - 2
         Range("A" & i + 2).Value = i
-        'Range("B" & i + 2).Value = (8 * 60 + 42) * i / 15686
         Range("B" & i + 2).Value = i * (1 / fps)
         Range("C" & i + 2).FormulaR1C1 = "=LEFT(TEXT(RC[-1]/(24*60*60), ""hh:mm:ss.000""), 8)"
     Next
@@ -2341,7 +2041,7 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
         .ScreenUpdating = True
         .EnableEvents = True
         .Calculation = xlCalculationAutomatic
-    End With 'With Application
+    End With
     s_PointCalc.Visible = xlSheetVeryHidden
 End Sub
 
@@ -2363,7 +2063,6 @@ Sub VeryHiddenSheet()
     Sheets("ポイント計算シート").Visible = xlVeryHidden
     Sheets("条件設定シート").Visible = xlVeryHidden
 End Sub
-
 
 
 'Pythonから呼び出しされる
@@ -2396,12 +2095,11 @@ Sub MacroUpdateData(movieName As String, fps As Double)
         'fps値の保存
         fps = .Cells(2, 199)
 
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
     '姿勢判定
     Call makeGraphJisya
     Call makeGraphZensya
-
 
     'ノイズ除去
     Call removeCaptionNoise(fps)
@@ -2410,16 +2108,11 @@ Sub MacroUpdateData(movieName As String, fps As Double)
 '    Call fixSheetJisya
     Call fixSheetZensya
 
-
     '修正シートの更新
     Call Module1.paintAll
-'    Call Module3.paintAll
 
     '字幕生成
     Call outputCaption(movieName)
-
-    'シートを隠す
-'    Call VeryHiddenSheet
 
     'MacroUpdateDataの処理時間を測定する
     If MEAGERE_TIME_MACROUPDATEDATA = True Then
@@ -2437,17 +2130,7 @@ End Sub
 ' 引数1 ：動画名
 ' 戻り値：なし
 Sub MacroSaveData(movieName As String)
-
-    '姿勢重量点調査票シートを表示
-'    ThisWorkbook.Worksheets("工程評価シート").Select
-
-   '姿勢重量点調査票シートの作業名(No.1)へ元ファイル名のベースネームを記入する
-'    ThisWorkbook.Worksheets("工程評価シート").Cells(SHIJUTEN_SHEET_ROW_KOUTEI_NAME, SHIJUTEN_SHEET_COLUMN_KOUTEI_NAME).Value = cutLeftString(movieName, 16)
-
-    '姿勢重量点調査票をアクティブにして保存する
-'    Sheets("工程評価シート").Activate
     ThisWorkbook.Save
-
 End Sub
 
 
@@ -2465,7 +2148,8 @@ Sub OutputOtrs()
     Dim destFilePath   As String
     Dim sourceFilePath As String
 
-    Dim ReturnBook     As Workbook, targetWorkbook As Workbook
+    Dim ReturnBook     As Workbook
+    Dim targetWorkbook As Workbook
     Dim strYYYYMMDD    As String
     Dim PosExt         As Long
     Dim StrFileName    As String
@@ -2480,7 +2164,6 @@ Sub OutputOtrs()
         StrFileName = Left(StrFileName, PosExt - 1)
     End If
 
-
   'Now関数で取得した現在日付をFormatで整形して変数に格納
   strYYYYMMDD = Format(Now, "yyyymmdd_HHMMSS_")
 
@@ -2488,7 +2171,7 @@ Sub OutputOtrs()
         .ScreenUpdating = False
         .EnableEvents = False
         .Calculation = xlCalculationManual
-    End With 'With Application
+    End With
     Set ReturnBook = ActiveWorkbook
     destFilePath = ActiveWorkbook.Path & "\" & StrFileName & "_otrs.xlsx"
 
@@ -2507,19 +2190,6 @@ Sub OutputOtrs()
     Else
         Set targetWorkbook = Workbooks.Open(destFilePath)
     End If
-'    targetRowCount = 1
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_CYCLE).Value = "サイクル"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NUM).Value = "No."
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = "要素名"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_TYPE).Value = "種別1"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_COMPANY_TYPE).Value = "組合業種別"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_START_TIME).Value = "スタート"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = "要素時間"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_MOVE).Value = "動作"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_forced).Value = "無効"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_COMPARTINO).Value = "比較値"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = "要素名"
-'    targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = "要素時間"
 
     ReturnBook.Activate
     lastPoseNum = -1
@@ -2538,16 +2208,7 @@ Sub OutputOtrs()
         CaptionName2(3) = .Cells(132, 2)
         CaptionName2(2) = .Cells(150, 2)
         CaptionName2(1) = .Cells(168, 2)
-    End With 'With ThisWorkbook.Worksheets("条件設定シート")
-
-
-'    For i = 2 To 10
-'        posExt = InStrRev(CaptionName2(i), "-")
-'        If (0 < posExt) Then
-'            CaptionName2(i) = Mid(CaptionName2(i), posExt + 1, Len(CaptionName2(i)))
-'        End If
-'    Next
-
+    End With
 
     CaptionName2(0) = "データなし"
         '以下のパターン以外はその他とする。
@@ -2571,29 +2232,20 @@ Sub OutputOtrs()
             writePoseNum = 0
             On Error Resume Next
             writePoseNum = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value 'キャプション番号のセル代入
-'            If writePoseNum = 3 Or _
-'                writePoseNum = 5 Then
-'                'ポーズ3と5はその他にする。
-'                writePoseNum = 0
-'            End If
+
             '最初に別のポーズに変わった時が欲しいので一回目は同一にする。
             If i = 2 Then
                 lastPoseNum = writePoseNum
                 lastI = i - 2
             End If
 
-
             If lastPoseNum <> writePoseNum Then
                 '同一ポーズを取っていた時間が必要（切り替わった一個前の時間）
                 currentTime = .Cells(i - 1, 2).Value
                 '書き込み処理
                 targetWorkbook.Activate
-                'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NUM).Value = lastPoseNum
                 targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = CaptionName2(lastPoseNum)
-                'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_START_TIME).Value = Round(lastTime, 5)
                 targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
-                'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, 9).Value = lastI
-                'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, 10).Value = i - 3
                 lastI = i - 2
                 targetRowCount = targetRowCount + 1
 
@@ -2609,82 +2261,12 @@ Sub OutputOtrs()
             currentTime = .Cells(i - 1, 2).Value
             '書き込み処理
             targetWorkbook.Activate
-            'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NUM).Value = writePoseNum
             targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = CaptionName2(writePoseNum)
-            'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_START_TIME).Value = Round(lastTime, 5)
             targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
-
-            'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, 9).Value = lastI
-            'targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, 10).Value = i - 1 - 3
             ReturnBook.Activate
         End If
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
     s_ProcessEvaluation_2nd.Activate
     ThisWorkbook.Save
     targetWorkbook.Close savechanges:=True
 End Sub
-
-
-
-'Sub InputOtrs()
-'
-'    Dim openFileName As String
-'    Dim lastTime     As Double
-'
-'    Dim ex           As New Excel.Application    '// 処理用Excel
-'    Dim wb           As Workbook                 '// ワークブック
-'    Dim r            As Range                    '// 取得対象のセル範囲
-'    Dim sht          As Worksheet                '// 参照シート
-'
-'    Dim i            As Long
-'    Dim max_row_num  As Long
-'    Dim max_row      As Long
-'
-'    'OTRSエクスポートファイルを開く
-'    openFileName = Application.GetOpenFilename("OTRSエクスポートファイル,*.xlsx?")
-'
-'    '正しくファイルが開かれた場合の処理
-'    If openFileName <> "False" Then
-'
-'        '// 読み取り専用で開く
-'        Set wb = ex.Workbooks.Open(FileName:=openFileName, UpdateLinks:=0, ReadOnly:=True, IgnoreReadOnlyRecommended:=True)
-'
-'        '処理する行数を取得（1列目の最終セル）
-'        max_row_num = wb.Worksheets(1).Cells(1, 1).End(xlDown).row
-'
-'        For i = 2 To max_row_num
-'            '要素名のコピー、セル背景色は白にする
-'            ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 3).Value = wb.Worksheets(1).Cells(i, 1).Value
-'            ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 3).Interior.Color = RGB(255, 255, 255)
-'
-'            '作業終了時間のコピー、セル背景色は白にする
-'            If i = 2 Then
-'                '処理する行数を取得（3列目の最終セル）
-'                max_row = ThisWorkbook.Worksheets("ポイント計算シート").Cells(1, 2).End(xlDown).row
-'                '秒数を切り上げて代入
-'                lastTime = Application.WorksheetFunction.RoundUp(ThisWorkbook.Worksheets("ポイント計算シート").Cells(max_row, 2), 0)
-'
-'            End If
-'
-'            If i <> max_row_num Then
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 36).Value = "－"
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 37).Value = wb.Worksheets(1).Cells(i + 1, 2).Value
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 37).Interior.Color = RGB(255, 255, 255)
-'            Else
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 36).Value = "－"
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 37).Value = lastTime
-'                ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(9 + i - 2, 37).Interior.Color = RGB(255, 255, 255)
-'            End If
-'        Next
-'
-'        '// ブックを閉じる
-'        Call wb.Close
-'
-'        '// Excelアプリケーションを閉じる
-'        Call ex.Application.Quit
-'
-'        'データ更新
-'        ClickUpdateData
-'
-'    End If
-'End Sub
