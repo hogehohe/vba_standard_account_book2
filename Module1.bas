@@ -397,8 +397,8 @@ Sub paintPostureScore(processingRange As Long)
         baseClm = LIMIT_COLUMN * shtPage
 
         'pageLimitを次のページとなる閾値まで更新
-        thisPageLimit = (shtPage + 1) * LIMIT_COLUMN
-        preClm = (LIMIT_COLUMN * shtPage) * -1
+        thisPageLimit   = (shtPage + 1) * LIMIT_COLUMN
+        preClm          = (LIMIT_COLUMN * shtPage) * -1
 
         Dim lCol As Long, rCol As Long
         If Not CropSelectionToDataArea(lCol, rCol) Then
@@ -876,27 +876,6 @@ Sub reliabilityUpdate(row As Long, vle As Long)
 End Sub
 
 
-'------------------------------------------------------------
-' 拳上げ用の元データ列（姿勢スコア）を更新する処理
-'
-' 引数:
-'   row - データ対象の行番号（ポイント計算シート）
-'   bit - 処理種別（0:戻るでリセット, 1:強制）
-'------------------------------------------------------------
-Sub baseScore(row As Long, bit As Long)
-    With ThisWorkbook.Sheets("ポイント計算シート")
-        If bit = 1 Then
-            ' 強制入力時：元データが空なら、現スコアを記録
-            If .Cells(row, COLUMN_BASE_SCORE).Value = "" Then
-                .Cells(row, COLUMN_BASE_SCORE).Value = .Cells(row, COLUMN_POSTURE_SCORE_ALL).Value
-            End If
-        Else
-            ' リセット時：保存していた元データをスコア列に復元
-            .Cells(row, COLUMN_POSTURE_SCORE_ALL).Value = .Cells(row, COLUMN_BASE_SCORE).Value
-        End If
-    End With
-End Sub
-
 '『初期化』ボタンが押されたとき
 Sub reset()
     Call forceResult(-1)
@@ -1195,7 +1174,8 @@ Sub scrollToRightEnd()
         ' 小スクロールでスクロール範囲を表示に収める
         ActiveWindow.SmallScroll ToLeft:=ActiveWindow.Panes(2).VisibleRange.Columns.Count
 
-        ' 条件によって微調整
+        '以下の分岐は今後はいらない可能性がある
+        '少し右へ
         If keepColumn = 16192 Then
             ' 特定列の場合は微調整（5列分右へ）
             ActiveWindow.SmallScroll ToRight:=5
@@ -1780,8 +1760,8 @@ End Sub
 '          False → 交差なし（メッセージは呼び出し側で）
 Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As Long) As Boolean
     Const PAGE_FRAME_MAX    As Long = LIMIT_COLUMN '16200
-    Const VALID_ROW_TOP     As Long = 14
-    Const VALID_ROW_BOTTOM  As Long = 23
+    Const VALID_ROW_TOP     As Long = 14 '有効範囲の最上部（14）
+    Const VALID_ROW_BOTTOM  As Long = 23 '有効範囲の最下部（23）
 
     Dim shtPage   As Long
     Dim baseClm   As Long
@@ -1789,8 +1769,8 @@ Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As
     Dim frmR      As Long              '選択フレーム
     Dim pageFrmR  As Long              'ページの有効フレーム
     Dim totalFrm  As Long
-    Dim rowTop    As Long
-    Dim rowBottom As Long
+    Dim rowTop    As Long              'rowTop: 選択範囲の最初の行番号
+    Dim rowBottom As Long              'rowBottom: 選択範囲の最後の行番号
 
     ' ボタン列を選んだら無視
     If Selection.Column > Columns.Count Then
@@ -1803,11 +1783,6 @@ Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As
     ' 行範囲を取得
     rowTop = Selection.row
     rowBottom = Selection.row + Selection.Rows.Count - 1
-
-    'rowTop: 選択範囲の最初の行番号
-    'rowBottom: 選択範囲の最後の行番号
-    'VALID_ROW_TOP: 有効範囲の最上部（14）
-    'VALID_ROW_BOTTOM: 有効範囲の最下部（23）
 
     ' ↓「選択範囲の上端が14より前 もしくは 下端が23より後ろなら」選択範囲は範囲外
     ' 行と交差しているかをチェック
