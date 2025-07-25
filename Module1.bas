@@ -21,11 +21,6 @@ Const ROW_POSTURE_SCORE_TOP             As Long = 12 + 2
 '2023/12/19育成G追記（レイアウト変更により2行分追加）
 Const ROW_POSTURE_SCORE_BOTTOM          As Long = 21 + 2
 
-
-'2023/12/08 育成G小杉追記
-'拳上_姿勢点
-Const ROW_POSTURE_SCORE_KOBUSHIAGE      As Long = 10 + 2 '一旦姿勢素点の下側に表示する
-
 '---------------------------------------------
 'ポイント計算シートの列
 '---------------------------------------------
@@ -33,9 +28,6 @@ Const ROW_POSTURE_SCORE_KOBUSHIAGE      As Long = 10 + 2 '一旦姿勢素点の�
 Const COLUMN_DATA_RESULT_ORIGIN         As Long = 203
 '姿勢点が保存されている列 2023/12/12 育成G追記
 Const COLUMN_POSTURE_SCORE_ALL          As Long = 203
-
-'2023/12/11 育成G小杉追記 条件A(拳上)が保存されている列
-Const COLUMN_POSTURE_SCORE_KOBUSHIAGE   As Long = 245
 
 '信頼性が保存されている列
 '測定
@@ -359,11 +351,10 @@ Sub paintPostureScore(processingRange As Long)
         '配列の最後尾
 '        余分を削除
         maxRowNum = maxRowNum - 1
+
         '配列を再定義
         ReDim postureScoreDataArray(maxRowNum, 0)
-        '2023/12/11　育成G小杉追記-------------
-        ReDim postureScoreDataArray_A(maxRowNum, 0) As Long
-        '--------------------------------------
+
         '信頼性区間用
         ReDim reliabilityDataArray(maxRowNum, 0)
 
@@ -373,9 +364,7 @@ Sub paintPostureScore(processingRange As Long)
             '姿勢点の列を配列に入れる
             '配列は0から始まるため+1、2行目から使用するため+1
             postureScoreDataArray(RowNumCount - 1, 0) = .Cells(RowNumCount + 1, COLUMN_DATA_RESULT_ORIGIN).Value
-            ' 2023/12/11育成G小杉追記 オリジナル拳上げデータ参照----------
-            postureScoreDataArray_A(RowNumCount - 1, 0) = .Cells(RowNumCount + 1, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
-            '----------------------------------
+
             '信頼性を配列に入れる
             '1:測定、2:推定、3:欠損
 
@@ -395,12 +384,10 @@ Sub paintPostureScore(processingRange As Long)
 
     End With
 
-
     '---------------------------------------------
     '処理範囲を決める
     '---------------------------------------------
     'キャンセル(戻る)ボタンから呼ばれたとき
-
 
     If processingRange = 1 Then
         'アクティブセルの一番左が6列目以下の時
@@ -408,7 +395,6 @@ Sub paintPostureScore(processingRange As Long)
 
         shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
         baseClm = LIMIT_COLUMN * shtPage
-
 
         'pageLimitを次のページとなる閾値まで更新
         thisPageLimit = (shtPage + 1) * LIMIT_COLUMN
@@ -482,22 +468,16 @@ Sub paintPostureScore(processingRange As Long)
     For wholeStartCount = wholeStart To wholeEnd
         '姿勢点のカウンターをリセット
         Erase postureScoreCounterArray
-        '2023/12/11　育成G小杉追記 -----------
-        Erase postureScoreCounterArray_A
-        '-------------------------------------
+
         '信頼性のカウンターをリセット
         Erase reliabilityCounterArray
 
         '姿勢点を確認
         postureScoreFlag = postureScoreDataArray(wholeStartCount - 1, 0)
-        '2023/12/11　育成G小杉追記 -----------
-        postureScoreFlag_A = postureScoreDataArray_A(wholeStartCount - 1, 0)
-        '-------------------------------------
+
         '姿勢点フラグを立てる
         postureScoreCounterArray(postureScoreFlag) = 1
-        '2023/12/11　育成G小杉追記 -----------
-        postureScoreCounterArray_A(postureScoreFlag_A) = 1
-        '-------------------------------------
+
         '信頼性を確認
 '        reliabilityFlag = reliabilityDataArray(i - 1, 0)230209
         reliabilityFlag = reliabilityDataArray(wholeStartCount, 0)
@@ -820,10 +800,6 @@ Sub postureUpdate(sclm As Long, fclm As Long, bit As Long, score As Long)
             If score = -1 Then
                 vle = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
 
-                ' 拳上げデータも元に戻す
-                .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = _
-                    .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE - 1).Value
-
             '-------------------------------
             ' 強制スコア（1～9）
             '-------------------------------
@@ -846,7 +822,6 @@ Sub postureUpdate(sclm As Long, fclm As Long, bit As Long, score As Long)
                     .Cells(i, COLUMN_POSTURE_YELLOW).Value = 0
                     .Cells(i, COLUMN_POSTURE_RED).Value = 0
                     .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 0
-                    .Cells(i, COLUMN_POSTURE_SCORE_KOBUSHIAGE).Value = 0 ' 拳上げ列も0に
 
                 Case 1 To 2 ' 楽な姿勢
                     .Cells(i, COLUMN_POSTURE_GREEN).Value = vle
