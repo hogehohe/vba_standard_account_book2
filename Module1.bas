@@ -130,15 +130,15 @@ End Function
 '------------------------------------------------------------
 Private Sub autoFillLine(ws As Worksheet, endline As Long)
     '定数定義
-    Const BASE_ROW_START    As Long: BASE_ROW_START     = 2                  ' 雛形の罫線上端（2行目）
-    Const BASE_ROW_END      As Long: BASE_ROW_END       = 26                 ' 雛形の罫線下端（26行目）
-    Const BASE_COL_START    As Long: BASE_COL_START     = 7                  ' G列（=7列目）
-    Const BASE_COL_END      As Long: BASE_COL_END       = 155                ' EZ列（=155列目）
-    Const MAX_COLUMN_LIMIT  As Long: MAX_COLUMN_LIMIT   = SHEET_LIMIT_COLUMN ' シートの使用可能列数の上限
+    Const BASE_ROW_START    As Long = 2     ' 雛形の罫線上端（2行目）
+    Const BASE_ROW_END      As Long = 26    ' 雛形の罫線下端（26行目）
+    Const BASE_COL_START    As Long = 7     ' G列（=7列目）
+    Const BASE_COL_END      As Long = 155   ' EZ列（=155列目）
+
+    Dim MAX_COLUMN_LIMIT    As Long: MAX_COLUMN_LIMIT  = SHEET_LIMIT_COLUMN ' シートの使用可能列数の上限
+    Dim ruleLineColumnNum   As Long: ruleLineColumnNum = endline
 
     '実際の処理対象列を制限付きで決定
-    Dim ruleLineColumnNum As Long
-    ruleLineColumnNum = endline
     If ruleLineColumnNum > MAX_COLUMN_LIMIT Then
         ruleLineColumnNum = MAX_COLUMN_LIMIT
     End If
@@ -332,8 +332,8 @@ Sub paintPostureScore(processingRange As Long)
     Dim thisPageLimit           As Long
     thisPageLimit = LIMIT_COLUMN
     '前のページの最終列を保存する
-    Dim preClm  As Long
-    preClm = 0
+    Dim preClm  As Long: preClm = 0
+
     Call stopUpdate
 
     Dim baseClm As Long
@@ -1171,16 +1171,6 @@ Sub scrollToRightEnd()
 
         ' 小スクロールでスクロール範囲を表示に収める
         ActiveWindow.SmallScroll ToLeft:=ActiveWindow.Panes(2).VisibleRange.Columns.Count
-
-        '以下の分岐は今後はいらない可能性がある
-        '少し右へ
-        If keepColumn = 16192 Then
-            ' 特定列の場合は微調整（5列分右へ）
-            ActiveWindow.SmallScroll ToRight:=5
-        Else
-            ' 通常は約3秒分（90列）スクロール
-            ActiveWindow.SmallScroll ToRight:=90
-        End If
 
         ' カーソル・セル位置の最終調整
         Call finCellPlace(ActiveSheet)
