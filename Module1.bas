@@ -268,39 +268,20 @@ Sub paintPostureScore(processingRange As Long)
     '---------------------------------------------
 
     '信頼性
-    Dim colorMeasureSection    As String '水色
-    Dim colorPredictSection    As String '黄色
-    Dim colorMissingSection    As String 'ピンク
-    Dim colorForcedSection     As String '青色
-    Dim colorRemoveSection     As String 'グレー
+    Dim colorMeasureSection    As Long = RGB(0, 176, 240)   '水色
+    Dim colorPredictSection    As Long = RGB(252, 246, 0)   '黄色
+    Dim colorMissingSection    As Long = RGB(255, 124, 128) 'ピンク
+    Dim colorForcedSection     As Long = RGB(0, 51, 204)    '青色
+    Dim colorRemoveSection     As Long = RGB(191, 191, 191) 'グレー
 
     '姿勢点
-    Dim colorResultGreen       As String '緑色
-    Dim colorResultYellow      As String '黄色
-    Dim colorResultRed         As String '赤色
-    Dim colorResultGlay        As String 'グレー
-    Dim colorResultWhite       As String '白色 20221219_下里
-    Dim colorResultBrown       As String '茶色 20221222_下里
-    Dim colorResultOFFGlay     As String 'グレー 20221222_下里
-
-    '---------------------------------------------
-    '変数に色をセット
-    '---------------------------------------------
-    '1:測定、2:推定、3:欠損、4:強制、5:除外
-    '信頼性
-    colorMeasureSection = RGB(0, 176, 240)   '水色
-    colorPredictSection = RGB(252, 246, 0)   '黄色
-    colorMissingSection = RGB(255, 124, 128) 'ピンク
-    colorForcedSection  = RGB(0, 51, 204)     '青色
-    colorRemoveSection  = RGB(191, 191, 191)  'グレー
-    '姿勢点
-    colorResultGreen    = RGB(0, 176, 80)       '緑色
-    colorResultYellow   = RGB(255, 192, 0)     '黄色
-    colorResultRed      = RGB(192, 0, 0)          '赤色
-    colorResultGlay     = RGB(191, 191, 191)     'グレー
-    colorResultWhite    = RGB(255, 255, 255)    '白色
-    colorResultBrown    = RGB(64, 0, 0)         '茶色
-    colorResultOFFGlay  = RGB(217, 217, 217)  '判定オフ用のグレー
+    Dim colorResultGreen       As Long = RGB(0, 176, 80)    '緑色
+    Dim colorResultYellow      As Long = RGB(255, 192, 0)   '黄色
+    Dim colorResultRed         As Long = RGB(192, 0, 0)     '赤色
+    Dim colorResultGlay        As Long = RGB(191, 191, 191) 'グレー
+    Dim colorResultWhite       As Long = RGB(255, 255, 255) '白色 20221219_下里
+    Dim colorResultBrown       As Long = RGB(64, 0, 0)      '茶色 20221222_下里
+    Dim colorResultOFFGlay     As Long = RGB(217, 217, 217) 'グレー 20221222_下里
 
 
     '---------------------------------------------
@@ -412,7 +393,7 @@ Sub paintPostureScore(processingRange As Long)
         fps = getFps()
         Dim video_sec As Double: video_sec = wholeEnd / fps
 
-    End With 'With ThisWorkbook.Sheets("ポイント計算シート")
+    End With
 
 
     '---------------------------------------------
@@ -663,8 +644,8 @@ Sub paintPostureScore(processingRange As Long)
             ) _
             .Interior.Color = colorStr
 
-        End With 'With ThisWorkbook.Sheets("姿勢素点修正シート")
-    Next 'i = wholeStart To wholeEnd
+        End With
+    Next
 
     ' キャンセルボタン以外からの処理の時
     If 1 < processingRange Then
