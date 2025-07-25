@@ -138,11 +138,11 @@ End Function
 '------------------------------------------------------------
 Private Sub autoFillLine(ws As Worksheet, endline As Long)
     '定数定義
-    Const BASE_ROW_START    As Long = 2                  ' 雛形の罫線上端（2行目）
-    Const BASE_ROW_END      As Long = 26                 ' 雛形の罫線下端（26行目）
-    Const BASE_COL_START    As Long = 7                  ' G列（=7列目）
-    Const BASE_COL_END      As Long = 155                ' EZ列（=155列目）
-    Const MAX_COLUMN_LIMIT  As Long = SHEET_LIMIT_COLUMN ' シートの使用可能列数の上限
+    Const BASE_ROW_START    As Long: BASE_ROW_START     = 2                  ' 雛形の罫線上端（2行目）
+    Const BASE_ROW_END      As Long: BASE_ROW_END       = 26                 ' 雛形の罫線下端（26行目）
+    Const BASE_COL_START    As Long: BASE_COL_START     = 7                  ' G列（=7列目）
+    Const BASE_COL_END      As Long: BASE_COL_END       = 155                ' EZ列（=155列目）
+    Const MAX_COLUMN_LIMIT  As Long: MAX_COLUMN_LIMIT   = SHEET_LIMIT_COLUMN ' シートの使用可能列数の上限
 
     '実際の処理対象列を制限付きで決定
     Dim ruleLineColumnNum As Long
@@ -194,8 +194,8 @@ End Sub
 Private Sub autoFillTime(ws As Worksheet, min As Long, endclm As Long)
 
     ' 変数定義
-    Dim tmp         As Long = endclm
-    Dim boldcnt     As Long = 0
+    Dim tmp         As Long: tmp = endclm
+    Dim boldcnt     As Long: boldcnt = 0
     Dim r           As Range
     Dim timeStr     As String
     Dim frame30Mod  As Long
@@ -268,20 +268,20 @@ Sub paintPostureScore(processingRange As Long)
     '---------------------------------------------
 
     '信頼性
-    Dim colorMeasureSection    As Long = RGB(0, 176, 240)   '水色
-    Dim colorPredictSection    As Long = RGB(252, 246, 0)   '黄色
-    Dim colorMissingSection    As Long = RGB(255, 124, 128) 'ピンク
-    Dim colorForcedSection     As Long = RGB(0, 51, 204)    '青色
-    Dim colorRemoveSection     As Long = RGB(191, 191, 191) 'グレー
+    Dim colorMeasureSection    As Long: colorMeasureSection = RGB(0, 176, 240)   '水色
+    Dim colorPredictSection    As Long: colorPredictSection = RGB(252, 246, 0)   '黄色
+    Dim colorMissingSection    As Long: colorMissingSection = RGB(255, 124, 128) 'ピンク
+    Dim colorForcedSection     As Long: colorForcedSection  = RGB(0, 51, 204)    '青色
+    Dim colorRemoveSection     As Long: colorRemoveSection  = RGB(191, 191, 191) 'グレー
 
     '姿勢点
-    Dim colorResultGreen       As Long = RGB(0, 176, 80)    '緑色
-    Dim colorResultYellow      As Long = RGB(255, 192, 0)   '黄色
-    Dim colorResultRed         As Long = RGB(192, 0, 0)     '赤色
-    Dim colorResultGlay        As Long = RGB(191, 191, 191) 'グレー
-    Dim colorResultWhite       As Long = RGB(255, 255, 255) '白色 20221219_下里
-    Dim colorResultBrown       As Long = RGB(64, 0, 0)      '茶色 20221222_下里
-    Dim colorResultOFFGlay     As Long = RGB(217, 217, 217) 'グレー 20221222_下里
+    Dim colorResultGreen       As Long: colorResultGreen    = RGB(0, 176, 80)    '緑色
+    Dim colorResultYellow      As Long: colorResultYellow   = RGB(255, 192, 0)   '黄色
+    Dim colorResultRed         As Long: colorResultRed      = RGB(192, 0, 0)     '赤色
+    Dim colorResultGlay        As Long: colorResultGlay     = RGB(191, 191, 191) 'グレー
+    Dim colorResultWhite       As Long: colorResultWhite    = RGB(255, 255, 255) '白色 20221219_下里
+    Dim colorResultBrown       As Long: colorResultBrown    = RGB(64, 0, 0)      '茶色 20221222_下里
+    Dim colorResultOFFGlay     As Long: colorResultOFFGlay  = RGB(217, 217, 217) 'グレー 20221222_下里
 
 
     '---------------------------------------------
@@ -709,23 +709,23 @@ End Sub
 Sub forceResult(postureScorebutton As Long)
 
     ' 色設定：信頼性
-    Dim colorMeasureSection As Long = RGB(0, 176, 240)
-    Dim colorPredictSection As Long = RGB(252, 246, 0)
-    Dim colorMissingSection As Long = RGB(255, 124, 128)
-    Dim colorForcedSection  As Long = RGB(0, 51, 204)
-    Dim colorResetSection   As Long = RGB(191, 191, 191)
+    Dim colorMeasureSection As Long: colorMeasureSection = RGB(0, 176, 240)
+    Dim colorPredictSection As Long: colorPredictSection = RGB(252, 246, 0)
+    Dim colorMissingSection As Long: colorMissingSection = RGB(255, 124, 128)
+    Dim colorForcedSection  As Long: colorForcedSection  = RGB(0, 51, 204)
+    Dim colorResetSection   As Long: colorResetSection   = RGB(191, 191, 191)
 
     ' 色設定：姿勢点
-    Dim colorResultGreen    As Long = RGB(0, 176, 80)
-    Dim colorResultYellow   As Long = RGB(255, 192, 0)
-    Dim colorResultRed      As Long = RGB(192, 0, 0)
-    Dim colorResultGlay     As Long = RGB(191, 191, 191)
-    Dim colorResultWhite    As Long = RGB(255, 255, 255)
-    Dim colorResultOFFGlay  As Long = RGB(217, 217, 217)
+    Dim colorResultGreen    As Long: colorResultGreen   = RGB(0, 176, 80)
+    Dim colorResultYellow   As Long: colorResultYellow  = RGB(255, 192, 0)
+    Dim colorResultRed      As Long: colorResultRed     = RGB(192, 0, 0)
+    Dim colorResultGlay     As Long: colorResultGlay    = RGB(191, 191, 191)
+    Dim colorResultWhite    As Long: colorResultWhite   = RGB(255, 255, 255)
+    Dim colorResultOFFGlay  As Long: colorResultOFFGlay = RGB(217, 217, 217)
 
     ' 現在のシート位置から列オフセットを計算
-    Dim shtPage         As Long = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
-    Dim baseClm         As Long = LIMIT_COLUMN * shtPage
+    Dim shtPage         As Long: shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
+    Dim baseClm         As Long: baseClm = LIMIT_COLUMN * shtPage
 
     Dim lCol            As Long
     Dim rCol            As Long
@@ -1022,15 +1022,14 @@ Sub checkReliabilityRatio()
     Dim reliabilityColorCounterArray(5) As Long
 
     ' 色定義（RGB）
-    Dim colorMeasureSection    As String: colorMeasureSection = RGB(0, 176, 240)
-    Dim colorPredictSection    As String: colorPredictSection = RGB(252, 246, 0)
-    Dim colorMissingSection    As String: colorMissingSection = RGB(255, 124, 128)
-    Dim colorForcedSection     As String: colorForcedSection  = RGB(0, 51, 204)
-    Dim colorRemoveSection     As String: colorRemoveSection  = RGB(191, 191, 191)
+    Dim colorMeasureSection    As Long: colorMeasureSection = RGB(0, 176, 240)
+    Dim colorPredictSection    As Long: colorPredictSection = RGB(252, 246, 0)
+    Dim colorMissingSection    As Long: colorMissingSection = RGB(255, 124, 128)
+    Dim colorForcedSection     As Long: colorForcedSection  = RGB(0, 51, 204)
+    Dim colorRemoveSection     As Long: colorRemoveSection  = RGB(191, 191, 191)
 
     fps = getFps()
     maxRowNum = getLastRow()
-
 
     ' 修正シート列数を初期化（全体列 - ラベル列）
     ColumnNum = 16206
@@ -1099,9 +1098,9 @@ End Sub
 '   初回呼び出し時に現在の幅サイズを基準として記録する。
 '------------------------------------------------------------
 Sub adjustWidth(expansionFlag As Boolean)
-    Const EXPANSION_RATIO As Long = 100 ' 未使用定数だが保持
-    Static initFin As Boolean           ' 初回呼び出しフラグ
-    Static wSize As widthSize           ' 現在の幅サイズ
+    Const EXPANSION_RATIO As Long: EXPANSION_RATIO = 100    ' 未使用定数だが保持
+    Static initFin        As Boolean                        ' 初回呼び出しフラグ
+    Static wSize          As widthSize                      ' 現在の幅サイズ
 
     ' 画面更新停止
     Call stopUpdate
@@ -1250,8 +1249,8 @@ End Sub
 '   Static変数 keepColumn によって、前回呼び出し時の列位置を記憶する。
 '------------------------------------------------------------
 Private Function getClm(clm As Long) As Boolean
-    Static keepColumn As Long
-    Dim isSameColumn As Boolean
+    Static keepColumn   As Long
+    Dim isSameColumn    As Boolean
 
     If keepColumn = clm Then
         isSameColumn = True
@@ -1298,10 +1297,11 @@ End Sub
 '   - 再生ボタンの非表示処理を実行する。
 '------------------------------------------------------------
 Sub RegularInterval1()
-    Dim iend As Long, i As Long
-    Dim dajsht() As String
-    Dim currentColumn As Long
-    Dim ws As Worksheet
+    Dim iend            As Long
+    Dim i               As Long
+    Dim dajsht()        As String
+    Dim currentColumn   As Long
+    Dim ws              As Worksheet
     Set ws = ActiveSheet
 
     ' 対象となる修正シート一覧を取得
@@ -1452,10 +1452,10 @@ End Sub
 '引数1：シート
 '戻り値：シートが何番目に属しているか
 Function calcSheetNamePlace(ws As Worksheet)
-    Dim shNameArray() As String
-    Dim i As Long
-    Dim iend As Long
-    Dim ret As Long: ret = 0
+    Dim shNameArray()   As String
+    Dim i               As Long
+    Dim iend            As Long
+    Dim ret             As Long: ret = 0
 
     shNameArray() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     iend = UBound(shNameArray)
@@ -1483,9 +1483,9 @@ End Function
 '   一致したワークシート名の配列（String型）
 '------------------------------------------------------------
 Function call_GetSheetNameToArrayspecific(wb As Workbook, str As String) As String()
-    Dim tmp() As String
-    Dim ws As Worksheet
-    Dim i As Long: i = 0
+    Dim tmp()   As String
+    Dim ws      As Worksheet
+    Dim i       As Long: i = 0
 
     ' 全ワークシートを走査して対象名を含むものを追加
     For Each ws In wb.Worksheets
@@ -1505,10 +1505,10 @@ End Function
 '引数2：前ページに移動するアイコンを非表示にするかどうか（true or false）
 '引数3：次ページに移動するアイコンを非表示にするかどうか（true or false）
 Private Sub addPageShape(ws As Worksheet, pPageState As Boolean, nPageState As Boolean)
-    Const pPage As String = "prevPage"
-    Const nPage As String = "nextPage"
-    Const pCover As String = "prevPage_Disabled"
-    Const nCover As String = "nextPage_Disabled"
+    Const pPage     As String = "prevPage"
+    Const nPage     As String = "nextPage"
+    Const pCover    As String = "prevPage_Disabled"
+    Const nCover    As String = "nextPage_Disabled"
 
     Call initCellPlace(ws)
 
@@ -1542,9 +1542,9 @@ End Function
 '   - s_Master_2nd シートを複製し、名前を設定
 '------------------------------------------------------------
 Sub createSheet(dupCount As Long)
-    Dim ws As Worksheet
+    Dim ws      As Worksheet
     Dim dupFlag As Boolean
-    Dim wsName As String
+    Dim wsName  As String
 
     wsName = "姿勢素点修正シート"
     dupFlag = False
@@ -1590,10 +1590,10 @@ End Sub
 'ワークシートを消去
 Sub DeleteSheet(dupCount As Long)
 
-    Dim ws As Worksheet
+    Dim ws      As Worksheet
     Dim dupflag As Boolean
-    Dim wsName As String
-    Dim time As Long: time = 1000
+    Dim wsName  As String
+    Dim time    As Long: time = 1000
 
     wsName = "姿勢素点修正シート"
 
@@ -1738,11 +1738,11 @@ End Sub
 ' ・一部範囲の内容をクリア
 '------------------------------------------------------------
 Sub resetSheet()
-    Const pPage As String = "prevPage"
-    Const nPage As String = "nextPage"
-    Dim iend As Long
-    Dim i As Long
-    Dim dajsht() As String
+    Const pPage     As String = "prevPage"
+    Const nPage     As String = "nextPage"
+    Dim iend        As Long
+    Dim i           As Long
+    Dim dajsht()    As String
 
     ' 姿勢素点修正シートの一覧を取得
     dajsht() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
@@ -1804,9 +1804,9 @@ End Sub
 ' 戻り値 : True → 交差あり（ leftCol/rightCol が返る ）
 '          False → 交差なし（メッセージは呼び出し側で）
 Public Function CropSelectionToDataArea(ByRef leftCol As Long, ByRef rightCol As Long) As Boolean
-    Const PAGE_FRAME_MAX As Long = LIMIT_COLUMN '16200
-    Const VALID_ROW_TOP As Long = 14
-    Const VALID_ROW_BOTTOM As Long = 23
+    Const PAGE_FRAME_MAX    As Long = LIMIT_COLUMN '16200
+    Const VALID_ROW_TOP     As Long = 14
+    Const VALID_ROW_BOTTOM  As Long = 23
 
     Dim shtPage   As Long
     Dim baseClm   As Long
