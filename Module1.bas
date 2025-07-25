@@ -784,8 +784,10 @@ End Sub
 '------------------------------------------------------------
 Sub postureUpdate(sclm As Long, fclm As Long, bit As Long, score As Long)
 
-    Dim s As Long, last As Long, i As Long
-    Dim vle As Long
+    Dim s       As Long
+    Dim last    As Long
+    Dim i       As Long
+    Dim vle     As Long
 
     ' データ列へのオフセット変換（データは2行目から）
     s = sclm - COLUMN_ZERO_NUM + 1
@@ -1017,11 +1019,9 @@ Sub checkReliabilityRatio()
     coercionSectionRatio    = reliabilityColorCounterArray(4) / maxRowNum * 100
 
     ' 修正シートの一覧取得と結果反映
-    Dim sName() As String
-    Dim n As Long
-    Dim actSheet As Worksheet
-    Set actSheet = ActiveSheet
-    sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+    Dim sName()     As String: sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
+    Dim n           As Long
+    Dim actSheet    As Worksheet: Set actSheet = ActiveSheet
 
     For n = 1 To UBound(sName)
         With ThisWorkbook.Sheets(sName(n))
@@ -1081,10 +1081,9 @@ Sub adjustWidth(expansionFlag As Boolean)
     wSize = sizeNext(wSize, expansionFlag)
 
     ' シート一覧取得と処理実行
-    Dim sName() As String
-    Dim n As Long
-    Dim actSheet As Worksheet
-    Set actSheet = ActiveSheet
+    Dim sName()     As String
+    Dim n           As Long
+    Dim actSheet    As Worksheet: Set actSheet = ActiveSheet
 
     sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     For n = 1 To UBound(sName)
