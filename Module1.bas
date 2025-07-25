@@ -60,8 +60,6 @@ Const COLUMN_POSTURE_YELLOW             As Long = 210
 Const COLUMN_POSTURE_RED                As Long = 211
 '欠損
 Const COLUMN_MISSING_SECTION            As Long = 219
-'拳上強制区間 2023/12/12 育成G追記
-Const COLUMN_FORCED_SECTION_KOBUSHIAGE  As Long = 223
 
 '---------------------------------------------
 '姿勢素点修正シート　関連
@@ -815,95 +813,6 @@ End Sub
 
 
 '------------------------------------------------------------
-' 拳上げ・膝曲げの姿勢点強制修正処理
-'
-' 引数:
-'   postureScorebutton - 押されたボタンの点数（0/1:強制, -1:リセット, 99:除外）
-'------------------------------------------------------------
-Sub forceResult_Kobushiage(postureScorebutton As Integer)
-
-    ' 色設定：信頼性
-    Dim colorMeasureSection As Long = RGB(0, 176, 240)
-    Dim colorPredictSection As Long = RGB(252, 246, 0)
-    Dim colorMissingSection As Long = RGB(255, 124, 128)
-    Dim colorForcedSection  As Long = RGB(0, 51, 204)
-    Dim colorRemoveSection  As Long = RGB(191, 191, 191)
-
-    ' 色設定：姿勢点
-    Dim colorResultGreen    As Long = RGB(0, 176, 80)
-    Dim colorResultYellow   As Long = RGB(255, 192, 0)
-    Dim colorResultRed      As Long = RGB(192, 0, 0)
-    Dim colorResultGlay     As Long = RGB(191, 191, 191)
-    Dim colorResultWhite    As Long = RGB(255, 255, 255)
-    DIm colorResultBrown    As Long = RGB(64, 0, 0)
-    Dim colorResultOFFGlay  As Long = RGB(217, 217, 217)
-
-    Dim baseClm         As Long = LIMIT_COLUMN * shtPage
-
-    Dim lCol            As Long
-    Dim rCol            As Long
-    Dim MinLeftCell     As Variant
-    Dim MaxRightCell    As Variant
-    Dim k               As Long
-    Dim m               As Long
-
-    If CropSelectionToDataArea(lCol, rCol) Then
-        MinLeftCell = lCol
-        MaxRightCell = rCol
-
-        With ThisWorkbook.ActiveSheet
-
-            ' 選択範囲の値取得（未使用）
-            Dim SelectCells As Variant
-            SelectCells = .Range(.Cells(Selection.Row, Selection.Column), _
-                                 .Cells(Selection.Row, Selection.Column + Selection.Columns.Count - 1)).Value
-
-            ' リセット処理（戻るボタン）
-            If postureScorebutton = -1 Then
-                postureUpdate_Kobushiage MinLeftCell + baseClm, MaxRightCell + baseClm, 0, CInt(postureScorebutton)
-                paintPostureScore 1
-
-            ' 強制処理（0/1/99）
-            ElseIf postureScorebutton >= 0 Then
-                postureUpdate_Kobushiage MinLeftCell + baseClm, MaxRightCell + baseClm, 1, CInt(postureScorebutton)
-
-                If postureScorebutton = 99 Then
-                    ' 除外色適用
-                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorRemoveSection
-
-                    For k = 1 To 3
-                        .Range(.Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MinLeftCell), _
-                               .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE - 2 + 2 * k, MaxRightCell)).Interior.Color = colorResultGlay
-                    Next
-
-                Else
-                    ' 除外状態だったセルを元の色に戻す
-                    For m = MinLeftCell To MaxRightCell
-                        If .Cells(ROW_POSTURE_SCORE_KOBUSHIAGE, m).Interior.Color = colorResultGlay Then
-                            paintPostureScore m
-                        End If
-                    Next
-
-                    ' 強制入力後の信頼性セル色塗り
-                    .Range(.Cells(ROW_RELIABILITY_TOP, MinLeftCell), _
-                           .Cells(ROW_RELIABILITY_BOTTOM, MaxRightCell)).Interior.Color = colorForcedSection
-
-                    ' ※拳上げセルの色塗り処理は一時的に除外中
-                End If
-
-                checkReliabilityRatio
-            End If
-        End With
-    Else
-        MsgBox "範囲はグラフ内から選択してください", vbOKOnly + vbCritical, "範囲選択エラー"
-    End If
-
-    checkReliabilityRatio
-End Sub
-
-
-'------------------------------------------------------------
 ' ポイント計算シートの姿勢点・信頼性を更新
 '
 ' 引数:
@@ -1158,18 +1067,6 @@ End Sub
 '姿勢点『0』強制ボタンが押されたとき
 Sub jogai()
     Call forceResult(99)
-End Sub
-
-
-'2023/12/11 育成G追記 拳上げ強制OFFボタンを押す
-Sub force_kobushi_OFF()
-    Call forceResult_Kobushiage(0)
-End Sub
-
-
-'2023/12/11 育成G追記 拳上げ強制ONボタンを押す
-Sub force_kobushi_On()
-    Call forceResult_Kobushiage(1)
 End Sub
 
 
