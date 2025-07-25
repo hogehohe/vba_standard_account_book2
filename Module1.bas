@@ -1370,39 +1370,6 @@ Sub Cancel1()
 End Sub
 
 
-'メッセージボックスの表示
-'戻り値：メッセージボックス
-Function YesorNo() As VbMsgBoxResult
-    YesorNo = MsgBox("この場所に" & ActiveWorkbook.Name & _
-                        "という名前のファイルが既にあります。置き換えますか？", _
-                        vbInformation + vbYesNoCancel + vbDefaultButton2)
-End Function
-
-
-'ブック全体の保存
-Sub Savebook()
-    Dim dotPoint     As String
-    Dim workbookName As String
-    Dim fps          As Double
-
-    'フレームレートを取得
-    fps = getFps()
-    If YesorNo() = vbYes Then
-
-        Call stopUpdate
-        Call Module2.fixSheetZensya(fps)
-
-        dotPoint = InStrRev(ActiveWorkbook.Name, ".")
-        workbookName = Left(ActiveWorkbook.Name, dotPoint - 1)
-        Call Module2.outputCaption(workbookName)
-
-        ActiveWorkbook.Save
-
-        Call restartUpdate
-    End If
-End Sub
-
-
 'sheetの左から何番に属するか判定する
 '引数1：シート
 '戻り値：シートが何番目に属しているか
