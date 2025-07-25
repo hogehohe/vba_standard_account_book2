@@ -730,40 +730,28 @@ End Sub
 Sub forceResult(postureScorebutton As Long)
 
     ' 色設定：信頼性
-    Dim colorMeasureSection As String
-    Dim colorPredictSection As String
-    Dim colorMissingSection As String
-    Dim colorForcedSection  As String
-    Dim colorResetSection   As String
+    Dim colorMeasureSection As Long = RGB(0, 176, 240)
+    Dim colorPredictSection As Long = RGB(252, 246, 0)
+    Dim colorMissingSection As Long = RGB(255, 124, 128)
+    Dim colorForcedSection  As Long = RGB(0, 51, 204)
+    Dim colorResetSection   As Long = RGB(191, 191, 191)
 
     ' 色設定：姿勢点
-    Dim colorResultGreen    As String
-    Dim colorResultYellow   As String
-    Dim colorResultRed      As String
-    Dim colorResultGlay     As String
-    Dim colorResultWhite    As String
-    Dim colorResultOFFGlay  As String
-
-    ' RGBの割り当て
-    colorMeasureSection = RGB(0, 176, 240)
-    colorPredictSection = RGB(252, 246, 0)
-    colorMissingSection = RGB(255, 124, 128)
-    colorForcedSection  = RGB(0, 51, 204)
-    colorResetSection   = RGB(191, 191, 191)
-
-    colorResultGreen    = RGB(0, 176, 80)
-    colorResultYellow   = RGB(255, 192, 0)
-    colorResultRed      = RGB(192, 0, 0)
-    colorResultGlay     = RGB(191, 191, 191)
-    colorResultWhite    = RGB(255, 255, 255)
-    colorResultOFFGlay  = RGB(217, 217, 217)
+    Dim colorResultGreen    As Long = RGB(0, 176, 80)
+    Dim colorResultYellow   As Long = RGB(255, 192, 0)
+    Dim colorResultRed      As Long = RGB(192, 0, 0)
+    Dim colorResultGlay     As Long = RGB(191, 191, 191)
+    Dim colorResultWhite    As Long = RGB(255, 255, 255)
+    Dim colorResultOFFGlay  As Long = RGB(217, 217, 217)
 
     ' 現在のシート位置から列オフセットを計算
-    Dim shtPage As Long: shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
-    Dim baseClm As Long: baseClm = LIMIT_COLUMN * shtPage
+    Dim shtPage         As Long = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
+    Dim baseClm         As Long = LIMIT_COLUMN * shtPage
 
-    Dim lCol As Long, rCol As Long
-    Dim MinLeftCell As Variant, MaxRightCell As Variant
+    Dim lCol            As Long
+    Dim rCol            As Long
+    Dim MinLeftCell     As Variant
+    Dim MaxRightCell    As Variant
 
     If CropSelectionToDataArea(lCol, rCol) Then
         MinLeftCell = lCol
@@ -835,41 +823,29 @@ End Sub
 Sub forceResult_Kobushiage(postureScorebutton As Integer)
 
     ' 色設定：信頼性
-    Dim colorMeasureSection As String
-    Dim colorPredictSection As String
-    Dim colorMissingSection As String
-    Dim colorForcedSection As String
-    Dim colorRemoveSection As String
+    Dim colorMeasureSection As Long = RGB(0, 176, 240)
+    Dim colorPredictSection As Long = RGB(252, 246, 0)
+    Dim colorMissingSection As Long = RGB(255, 124, 128)
+    Dim colorForcedSection  As Long = RGB(0, 51, 204)
+    Dim colorRemoveSection  As Long = RGB(191, 191, 191)
 
     ' 色設定：姿勢点
-    Dim colorResultGreen As String
-    Dim colorResultYellow As String
-    Dim colorResultRed As String
-    Dim colorResultGlay As String
-    Dim colorResultWhite As String
-    DIm colorResultBrown As String
-    Dim colorResultOFFGlay As String
+    Dim colorResultGreen    As Long = RGB(0, 176, 80)
+    Dim colorResultYellow   As Long = RGB(255, 192, 0)
+    Dim colorResultRed      As Long = RGB(192, 0, 0)
+    Dim colorResultGlay     As Long = RGB(191, 191, 191)
+    Dim colorResultWhite    As Long = RGB(255, 255, 255)
+    DIm colorResultBrown    As Long = RGB(64, 0, 0)
+    Dim colorResultOFFGlay  As Long = RGB(217, 217, 217)
 
-    ' RGBの割り当て
-    colorMeasureSection = RGB(0, 176, 240)
-    colorPredictSection = RGB(252, 246, 0)
-    colorMissingSection = RGB(255, 124, 128)
-    colorForcedSection  = RGB(0, 51, 204)
-    colorRemoveSection  = RGB(191, 191, 191)
+    Dim baseClm         As Long = LIMIT_COLUMN * shtPage
 
-    colorResultGreen    = RGB(0, 176, 80)
-    colorResultYellow   = RGB(255, 192, 0)
-    colorResultRed      = RGB(192, 0, 0)
-    colorResultGlay     = RGB(191, 191, 191)
-    colorResultWhite    = RGB(255, 255, 255)
-    colorResultBrown    = RGB(64, 0, 0)
-    colorResultOFFGlay  = RGB(217, 217, 217)
-
-    Dim baseClm As Long: baseClm = LIMIT_COLUMN * shtPage
-
-    Dim lCol As Long, rCol As Long
-    Dim MinLeftCell As Variant, MaxRightCell As Variant
-    Dim k As Long, m As Long
+    Dim lCol            As Long
+    Dim rCol            As Long
+    Dim MinLeftCell     As Variant
+    Dim MaxRightCell    As Variant
+    Dim k               As Long
+    Dim m               As Long
 
     If CropSelectionToDataArea(lCol, rCol) Then
         MinLeftCell = lCol
