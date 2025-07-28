@@ -1008,25 +1008,6 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
 End Sub
 
 
-Sub test() '230207
-    Dim dotPoint     As String
-    Dim workbookName As String
-
-    dotPoint = InStrRev(ActiveWorkbook.Name, ".")
-    workbookName = Left(ActiveWorkbook.Name, dotPoint - 1)
-    Call MacroUpdateData(workbookName, ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199))
-End Sub
-
-
-' 引数1 ：なし
-' 引数2 ：なし
-' 戻り値：なし
-Sub VeryHiddenSheet()
-    Sheets("ポイント計算シート").Visible = xlVeryHidden
-    Sheets("条件設定シート").Visible = xlVeryHidden
-End Sub
-
-
 'Pythonから呼び出しされる
 ' 引数1 ：動画名
 ' 引数2 ：フレームレート
@@ -1083,15 +1064,6 @@ Sub MacroUpdateData(movieName As String, fps As Double)
     '初回分析済みのフラグを立てる
     ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 196) = 1
 
-End Sub
-
-
-
-'姿勢重量点調査票の選択と保存
-' 引数1 ：動画名
-' 戻り値：なし
-Sub MacroSaveData(movieName As String)
-    ThisWorkbook.Save
 End Sub
 
 
