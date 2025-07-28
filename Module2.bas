@@ -451,61 +451,58 @@ Sub makeGraphZensya()
 End Sub
 
 
-'姿勢素点の字幕、フラグのノイズを消去する
-' 引数1 ：フレームレート
-' 戻り値：なし
+'------------------------------------------------------------
+' 姿勢素点の字幕データに含まれるノイズを除去する処理
+'
+' 引数:
+'   fps : フレームレート（frames per second）
+'
+' 備考:
+'   - 判定結果の変化が短時間で元に戻るような場合を「ノイズ」とみなし、除去対象とする
+'   - 閾値は CAPTION_REMOVE_NOISE_SECOND 秒に相当するフレーム数
+'   - ノイズ判定後、ノイズと思われる行を前の行の内容で上書き
+'------------------------------------------------------------
 Function removeCaptionNoise(fps As Double)
 
-    Dim max_row_num   As Long
-    Dim max_array_num As Long
+    Dim max_row_num     As Long
+    Dim i               As Long
+    Dim j               As Long
+    Dim k               As Long
+    Dim i_max           As Long
+    Dim j_max           As Long
+    Dim currentValue    As String
+    Dim targetValue     As String
+    Dim compareValue    As String
+    Dim sameValueNum    As Long
+    Dim noise_num       As Long
 
-    Dim i             As Long
-    Dim j             As Long
-    Dim k             As Long
-    Dim tmp           As Long
+    ' フレーム数に応じてノイズ判定の閾値（最小でも2フレーム）
+    noise_num = CAPTION_REMOVE_NOISE_SECOND * fps
 
-    Dim i_max         As Long
-    Dim j_max         As Long
-    Dim k_max         As Long
+    If noise_num < 2 Then noise_num = 2
 
-    Dim currentValue  As String
-    Dim targetValue   As String
-    Dim compareValue  As String
-
-    Dim sameValueNum  As Long
-    Dim noise_num     As Long: noise_num = CAPTION_REMOVE_NOISE_SECOND * fps
-
-    If noise_num < 2 Then
-        noise_num = 2
-    End If
-
-    '表示・更新をオフにする
     Call stopUpdate
 
     With ThisWorkbook.Sheets("ポイント計算シート")
 
-        '処理する行数を取得（3列目の最終セル）
         max_row_num = getLastRow()
-        max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
+        i_max = max_row_num - noise_num - 1 ' ノイズ判定を安全に行える範囲でループ
 
-        '下方向へ探索する際の起点(i), 終点(i_max)
-        i_max = max_row_num - noise_num - 1
-
-        'キャプションのノイズ除去
+        ' 行ごとにキャプションの変化を確認
         For i = 2 To i_max
 
             currentValue = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
             targetValue = .Cells(i + 1, COLUMN_DATA_RESULT_ORIGIN).Value
 
-            '判定結果が変わったとき
+            ' 判定結果に変化がある場合にのみ処理
             If currentValue <> targetValue Then
 
-                'ノイズかどうか探索する 起点(j), 終点(j_max)
-                j_max = i + 1 + noise_num - 1
                 sameValueNum = 1
+                j_max = i + 1 + noise_num - 1
+
+                ' targetValue が連続して出現する数をカウント
                 For j = i + 2 To j_max
                     compareValue = .Cells(j, COLUMN_DATA_RESULT_ORIGIN).Value
-                    '判定結果が変わったらループを抜ける
                     If targetValue = compareValue Then
                         sameValueNum = sameValueNum + 1
                     Else
@@ -513,12 +510,13 @@ Function removeCaptionNoise(fps As Double)
                     End If
                 Next
 
-                'ノイズが見つかったときの処理
+                ' 閾値未満 → ノイズと判定し、前の値で上書き
                 If sameValueNum < noise_num Then
-                    For k = i + 1 To j
+                    For k = i + 1 To j - 1
                         If Not IsEmpty(.Cells(i, COLUMN_DATA_RESULT_ORIGIN)) Then
                             For tmp = 0 To 14
-                                .Cells(k, COLUMN_DATA_RESULT_ORIGIN + tmp) = .Cells(i, COLUMN_DATA_RESULT_ORIGIN + tmp)
+                                .Cells(k, COLUMN_DATA_RESULT_ORIGIN + tmp).Value = _
+                                    .Cells(i, COLUMN_DATA_RESULT_ORIGIN + tmp).Value
                             Next
                         End If
                     Next
@@ -527,8 +525,8 @@ Function removeCaptionNoise(fps As Double)
         Next
     End With
 
-    '表示・更新をオンに戻す
     Call restartUpdate
+
 End Function
 
 
