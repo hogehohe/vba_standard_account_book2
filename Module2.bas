@@ -330,33 +330,29 @@ End Sub
 
 
 '------------------------------------------------------------
-' 姿勢点の判定とグラフ用データ生成
+' 姿勢点の判定とグラフ描画のためのデータを生成する処理
 '
-' 引数:
-'   なし
-'
-' 処理概要:
-'   - 条件設定シートから各姿勢点（1〜10点）のしきい値と名称を読み込み
-'   - 条件設定シートの構造に基づいて、逆順で読み出し
-'   - 各フレームに対して姿勢点を判定し、出力列に記録
-'   - グラフ色分け用のデータ列を生成
+' 概要:
+'   条件設定シートから各点数に対応する姿勢のしきい値を取得し、
+'   ポイント計算シート上の各行について、関節角度から姿勢点を判定。
+'   判定結果は色分け用の列にも反映。
 '
 ' 備考:
-'   - 表示更新を一時停止して処理速度を改善
+'   - 姿勢点は1点〜10点で評価され、最初に条件を満たした点数が優先される
+'   - 判定は腰・膝の角度による範囲チェックで行う
 '------------------------------------------------------------
 Sub makeGraphZensya()
 
     Call stopUpdate
 
+    ' 姿勢点の判定に使用するしきい値を格納する配列
     Dim KoshiMax(10)            As Double
     Dim KoshiMin(10)            As Double
     Dim HizaMax(10)             As Double
     Dim HizaMin(10)             As Double
     Dim CaptionName2(10)        As String
-    Dim CaptionName3Koshimage   As String
-    Dim CaptionName3Hizamage    As String
-    Dim Koshimage               As Double
-    Dim Hizamage                As Double
+
+    ' 各種変数
     Dim i                       As Long
     Dim j                       As Long
     Dim data_no                 As Long
@@ -365,82 +361,93 @@ Sub makeGraphZensya()
     Dim HizaAngleL              As Double
     Dim HizaAngleR              As Double
     Dim correctPose             As Boolean
-    Dim mSeconds                As String
     Dim totalSecond             As Long
     Dim hour                    As Long
     Dim min                     As Long
     Dim sec                     As Long
     Dim t                       As Date
-    Dim ds                      As String
+    Dim mSeconds                As String
 
-    ' 姿勢のしきい値と名称をまとめて読み出し
+    ' 条件設定シートから各点数（10〜1点）の条件を取得
     With ThisWorkbook.Worksheets("条件設定シート")
-        Dim rowOffsets As Variant
-        rowOffsets = Array(168, 150, 132, 114, 96, 78, 60, 42, 24, 6) ' 1〜10点の起点行（逆順）
-
         For j = 1 To 10
-            Dim baseRow As Long
-            baseRow = rowOffsets(j - 1)
-            CaptionName2(j) = .Cells(baseRow, 2)
-            KoshiMax(j) = .Cells(baseRow + 2, 7)
-            KoshiMin(j) = .Cells(baseRow + 3, 7)
-            HizaMax(j) = .Cells(baseRow + 5, 7)
-            HizaMin(j) = .Cells(baseRow + 6, 7)
+            ' 各点数の設定は18行おきに記載されているため、オフセットで取得
+            Dim offset As Long: offset = 168 - (j - 1) * 18
+            CaptionName2(j) = .Cells(offset, 2)
+            KoshiMax(j) = .Cells(offset + 2, 7)
+            KoshiMin(j) = .Cells(offset + 3, 7)
+            HizaMax(j) = .Cells(offset + 5, 7)
+            HizaMin(j) = .Cells(offset + 6, 7)
         Next j
-
-        CaptionName3Koshimage = .Cells(210, 2)
-        Koshimage = .Cells(212, 7)
-        CaptionName3Hizamage = .Cells(228, 2)
-        Hizamage = .Cells(230, 7)
     End With
 
+    ' ポイント計算シートの行数を取得し、各行について判定
     With ThisWorkbook.Sheets("ポイント計算シート")
         max_row_num = getLastRow()
 
         For i = 2 To max_row_num
-            KoshiAngle = CDbl(.Cells(i, COLUMN_KOSHI_ANGLE).Value)
-            HizaAngleL = CDbl(.Cells(i, COLUMN_HIZA_L_ANGLE).Value)
-            HizaAngleR = CDbl(.Cells(i, COLUMN_HIZA_R_ANGLE).Value)
-            mSeconds = Right(Format(WorksheetFunction.RoundDown(.Cells(i, 2), 3), "0.000"), 3)
+            ' 経過時間（秒）を時刻に変換し、書式付き文字列にする
             totalSecond = WorksheetFunction.RoundDown(.Cells(i, 2), 0)
+            mSeconds = Right(Format(WorksheetFunction.RoundDown(.Cells(i, 2), 3), "0.000"), 3)
             hour = totalSecond \ 3600
             min = (totalSecond Mod 3600) \ 60
             sec = totalSecond Mod 60
             t = TimeSerial(hour, min, sec)
-            ds = Format(t, "hh:mm:ss")
+
+            ' 該当する姿勢点が見つかったかのフラグ
             correctPose = False
 
+            ' 対象行の関節角度を読み取る（腰・左右膝）
+            KoshiAngle = CDbl(.Cells(i, COLUMN_KOSHI_ANGLE).Value)
+            HizaAngleL = CDbl(.Cells(i, COLUMN_HIZA_L_ANGLE).Value)
+            HizaAngleR = CDbl(.Cells(i, COLUMN_HIZA_R_ANGLE).Value)
+
+            ' 点数の条件をチェック（2点〜10点）
             For j = 2 To 10
-                If KoshiMin(j) >= KoshiAngle And KoshiMax(j) < KoshiAngle And _
-                   ((HizaMin(j) >= HizaAngleL And HizaAngleL > HizaMax(j)) Or _
+                If (KoshiMin(j) >= KoshiAngle And KoshiAngle > KoshiMax(j)) And _
+                    ((HizaMin(j) >= HizaAngleL And HizaAngleL > HizaMax(j)) Or _
                     (HizaMin(j) >= HizaAngleR And HizaAngleR > HizaMax(j))) Then
 
-                    .Cells(i, COLUMN_ROUGH_TIME).Value = ds & "," & mSeconds
+                    ' 条件に一致した場合：該当の点数を記録
+                    correctPose = True
+                    .Cells(i, COLUMN_ROUGH_TIME).Value = Format(t, "hh:mm:ss") & "," & mSeconds
                     .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value = j
                     .Cells(i, COLUMN_DATA_RESULT_FIX).Value = j
-                    correctPose = True
                     Exit For
                 End If
             Next j
 
+            ' 該当しなければ1点として扱う
             If Not correctPose Then
-                .Cells(i, COLUMN_ROUGH_TIME).Value = ds & "," & mSeconds
+                .Cells(i, COLUMN_ROUGH_TIME).Value = Format(t, "hh:mm:ss") & "," & mSeconds
                 .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value = 1
                 .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 1
             End If
         Next i
 
-        ' グラフ描画用フラグ（色分け）
+        ' 判定結果に応じて、色分け列に値を設定
         For i = 2 To max_row_num
             data_no = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
-            .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = IIf(data_no >= DATA_SEPARATION_GREEN_BOTTOM And data_no <= DATA_SEPARATION_GREEN_TOP, data_no, 0)
-            .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = IIf(data_no >= DATA_SEPARATION_YELLOW_BOTTOM And data_no <= DATA_SEPARATION_YELLOW_TOP, data_no, 0)
-            .Cells(i, COLUMN_DATA_RESULT_RED).Value = IIf(data_no >= DATA_SEPARATION_RED_BOTTOM And data_no <= DATA_SEPARATION_RED_TOP, data_no, 0)
+
+            If data_no >= DATA_SEPARATION_GREEN_BOTTOM And data_no <= DATA_SEPARATION_GREEN_TOP Then
+                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = data_no
+                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = 0
+                .Cells(i, COLUMN_DATA_RESULT_RED).Value = 0
+
+            ElseIf data_no >= DATA_SEPARATION_YELLOW_BOTTOM And data_no <= DATA_SEPARATION_YELLOW_TOP Then
+                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = 0
+                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = data_no
+                .Cells(i, COLUMN_DATA_RESULT_RED).Value = 0
+
+            ElseIf data_no >= DATA_SEPARATION_RED_BOTTOM And data_no <= DATA_SEPARATION_RED_TOP Then
+                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = 0
+                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = 0
+                .Cells(i, COLUMN_DATA_RESULT_RED).Value = data_no
+            End If
         Next i
     End With
 
     Call restartUpdate
-
 End Sub
 
 
