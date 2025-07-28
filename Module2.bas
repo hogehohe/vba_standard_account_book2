@@ -1022,61 +1022,63 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
 End Sub
 
 
-'Pythonから呼び出しされる
-' 引数1 ：動画名
-' 引数2 ：フレームレート
-' 戻り値：なし
+'------------------------------------------------------------
+' 動画データ更新処理マクロ
+'
+' 概要:
+'   - Pythonから呼び出され、動画名とフレームレートを基に処理を行う。
+'   - 字幕処理やノイズ除去などの一連の前処理を実施。
+'
+' 引数:
+'   movieName : 動画ファイル名
+'
+' 備考:
+'   - 一部処理は将来的にPython側に移行予定
+'   - 不要なスペース除去などの暫定対応も含む
+'------------------------------------------------------------
 Sub MacroUpdateData(movieName As String, fps As Double)
 
     Dim tstart_first As Double
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("ポイント計算シート")
 
-    If MEAGERE_TIME_MACROUPDATEDATA = True Then 'MacroUpdateDataの処理時間を測定する
+    '--- 処理時間の測定開始 ---
+    If MEAGERE_TIME_MACROUPDATEDATA = True Then
         tstart_first = Timer
     End If
 
-    With ThisWorkbook.Sheets("ポイント計算シート")
-        Dim max_row_num As Long
-        Dim i As Long
+    '--- セル内スペースの除去処理（暫定） ---
+    Dim maxRow As Long
+    maxRow = ws.Cells(1, 3).End(xlDown).Row
 
-        '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+    Dim col As Long
+    For col = 4 To 253
+        ws.Range(ws.Cells(2, col), ws.Cells(maxRow, col)).Replace " ", ""
+    Next col
 
-        '★★★本処理は、将来的にPythonコード側で行う予定★★★
-        'フラグが入力されるセルに入力されているスペースを検索して消去する
-        'メイン字幕の姿勢素点の色が全て緑になる不具合の暫定対策
-        'セル範囲が広すぎてメモリ不足になるため、for文で処理を細分化
-        For i = 4 To 253
-            .Range(.Cells(2, i), .Cells(max_row_num, i)).Replace " ", ""
-        Next
-
-        'fps値の保存
-        fps = getFps()
-
-    End With
-
-    '姿勢判定
+    '--- 姿勢判定処理 ---
     Call makeGraphJisya
     Call makeGraphZensya
 
-    'ノイズ除去
+    '--- 字幕のノイズ除去処理 ---
     Call removeCaptionNoise(fps)
 
-    '作業分割、時間測定
+    '--- 分割作業と処理時間記録 ---
     Call fixSheetZensya
 
-    '修正シートの更新
+    '--- 修正シートの再描画 ---
     Call Module1.paintAll
 
-    '字幕生成
+    '--- 字幕ファイル出力処理 ---
     Call outputCaption(movieName)
 
-    'MacroUpdateDataの処理時間を測定する
+    '--- 処理時間の測定終了と記録 ---
     If MEAGERE_TIME_MACROUPDATEDATA = True Then
-        ThisWorkbook.Sheets("ポイント計算シート").Cells(2, COLUMN_MEAGERE_TIME_MACROUPDATEDATA) = Format$(Timer - tstart_first, "0.00")
+        ws.Cells(2, COLUMN_MEAGERE_TIME_MACROUPDATEDATA) = Format$(Timer - tstart_first, "0.00")
     End If
 
-    '初回分析済みのフラグを立てる
-    ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 196) = 1
+    '--- 初回分析フラグを設定 ---
+    ws.Cells(2, 196) = 1
 
 End Sub
 
