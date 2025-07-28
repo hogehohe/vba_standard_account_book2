@@ -222,123 +222,92 @@ Function restartUpdate()
 End Function
 
 
-'腰曲げ、膝曲げの判定
-' 引数1 ：なし
-' 戻り値：なし
+'------------------------------------------------------------
+' 腰曲げ・膝曲げの角度判定を行い、ポイント計算シートに結果を反映する処理
+'
+' 引数:
+'   なし
+'
+' 備考:
+'   - 判定しきい値は定数 GH_ANGLE_〜 から取得
+'   - 膝角度は外販用に (180 - 測定値) で変換して記録
+'   - キャプション時刻は hh:mm:ss,ミリ秒 形式で生成
+'   - シートの表示更新を一時停止し、処理後に再開する
+'------------------------------------------------------------
 Sub makeGraphJisya()
 
-    '表示・更新をオフにする
     Call stopUpdate
 
-    '条件設定シートから読み込むパラメータ
-    Dim AngleKoshiMin       As Double
-    Dim AngleKoshiMax       As Double
+    ' 条件設定しきい値
+    Dim AngleKoshiMin   As Double: AngleKoshiMin = GH_ANGLE_KOSHIMAGE_MIN
+    Dim AngleKoshiMax   As Double: AngleKoshiMax = GH_ANGLE_KOSHIMAGE_MAX
+    Dim AngleHizaMin    As Double: AngleHizaMin  = GH_ANGLE_HIZAMAGE_MIN
+    Dim AngleHizaMax    As Double: AngleHizaMax  = GH_ANGLE_HIZAMAGE_MAX
 
-    Dim AngleHizaMin        As Double
-    Dim AngleHizaMax        As Double
+    ' 角度・判定・時間用変数
+    Dim ValAngleKoshi   As Double
+    Dim ValAngleHizaL   As Double
+    Dim ValAngleHizaR   As Double
+    Dim mSeconds        As String
+    Dim totalSecond     As Long
+    Dim hour            As Long
+    Dim min             As Long
+    Dim sec             As Long
+    Dim t               As Date
 
-    '関節角度のデータを読み込む変数
-    Dim ValAngleKoshi       As Double
-    Dim ValAngleHizaR       As Double
-    Dim ValAngleHizaL       As Double
-
-    '判定結果を格納する配列
-    Dim KoshimageArray()    As Double
-    Dim HizamageArray()     As Double
-
-    '外販用の膝角度
-    '社内と定義が異なるため注意
-    Dim HizaAngleLArray()   As Double
-    Dim HizaAngleRArray()   As Double
-
-    'その他変数
-    Dim start_frame         As Long
-    Dim end_frame           As Long
-    Dim fps                 As Double 'フレームレート
-    Dim correctPose         As Boolean
-    Dim mSeconds            As String
-    Dim totalSecond         As Long
-    Dim tempSecond          As Long
-    Dim hour, min, sec      As Long
-    Dim t                   As Date
-    Dim ds                  As String
-
-    Dim max_row_num         As Long '行の末尾
-    Dim max_array_num       As Long '配列の末尾
-
-    Dim i                   As Long
-    Dim j                   As Long
-    Dim data_no             As Long
+    ' 行数・配列
+    Dim max_row_num As Long
+    Dim max_array_num As Long
+    Dim i As Long
     Dim PointCalcSheetArray As Variant
-
-    '判定のしきい値を代入
-    AngleKoshiMin = GH_ANGLE_KOSHIMAGE_MIN
-    AngleKoshiMax = GH_ANGLE_KOSHIMAGE_MAX
-
-    AngleHizaMin = GH_ANGLE_HIZAMAGE_MIN
-    AngleHizaMax = GH_ANGLE_HIZAMAGE_MAX
+    Dim HizaAngleLArray() As Double
+    Dim HizaAngleRArray() As Double
 
     With ThisWorkbook.Sheets("ポイント計算シート")
 
-        '処理する行数を取得（3列目の最終セル）
+        ' 行数と配列初期化
         max_row_num = getLastRow()
-
-        'ポイント計算シートの中身を配列に読込
+        max_array_num = max_row_num - 2 ' 2行目開始・0ベース
         PointCalcSheetArray = .Range(.Cells(1, 1), .Cells(max_row_num, COLUMN_MAX_NUMBER))
-
-        max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
         ReDim HizaAngleLArray(max_array_num, 0)
         ReDim HizaAngleRArray(max_array_num, 0)
 
-        '-------------------------------------------------------------------------------------------
-        'ここから膝角度計算
-        '-------------------------------------------------------------------------------------------
+        ' 膝角度（外販用）は180-実値で取得
         For i = 0 To max_array_num
             HizaAngleLArray(i, 0) = 180 - .Cells(i + 2, COLUMN_HIZA_L_ANGLE).Value
             HizaAngleRArray(i, 0) = 180 - .Cells(i + 2, COLUMN_HIZA_R_ANGLE).Value
         Next
 
-        '-------------------------------------------------------------------------------------------
-        'ここから姿勢判定
-        '-------------------------------------------------------------------------------------------
+        ' 姿勢判定ループ
         For i = 2 To max_row_num
 
-            'キャプション時刻生成
-            mSeconds = Right(Format(WorksheetFunction.RoundDown(PointCalcSheetArray(i, 2), 3), "0.000"), 3) '小数点以下のみ取得
-            totalSecond = Application.WorksheetFunction.RoundDown(.Cells(i, 2), 0)
-            hour = WorksheetFunction.RoundDown(totalSecond / 3600, 0)
-            min = WorksheetFunction.RoundDown((totalSecond Mod 3600) / 60, 0)
+            ' キャプション時刻生成（hh:mm:ss,ミリ秒）
+            totalSecond = Int(PointCalcSheetArray(i, 2))
+            mSeconds = Right(Format(Round(PointCalcSheetArray(i, 2) - totalSecond, 3), "0.000"), 3)
+            hour = totalSecond \ 3600
+            min = (totalSecond Mod 3600) \ 60
             sec = totalSecond Mod 60
             t = TimeSerial(hour, min, sec)
-            ds = Format(t, "hh:mm:ss")
-
-            'キャプション時刻の代入
             PointCalcSheetArray(i, COLUMN_ROUGH_TIME) = Format(t, "hh:mm:ss") & "," & mSeconds
 
-            '関節角度の読み出し
+            ' 関節角度読み出し
             ValAngleKoshi = CDbl(PointCalcSheetArray(i, COLUMN_KOSHI_ANGLE))
             ValAngleHizaL = CDbl(PointCalcSheetArray(i, COLUMN_HIZA_L_ANGLE))
             ValAngleHizaR = CDbl(PointCalcSheetArray(i, COLUMN_HIZA_R_ANGLE))
 
-            '腰曲げの判定
-            If ( _
-                AngleKoshiMax >= ValAngleKoshi And _
-                AngleKoshiMin < ValAngleKoshi _
-            ) Then
+            ' 腰曲げ判定
+            If ValAngleKoshi > AngleKoshiMin And ValAngleKoshi <= AngleKoshiMax Then
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_KOSHIMAGE) = 1
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_KOSHIMAGE - 1) = 1
-
             Else
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_KOSHIMAGE) = 0
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_KOSHIMAGE - 1) = 0
             End If
 
-            '膝曲げの判定
-            If _
-                (AngleHizaMax >= (180 - ValAngleHizaL)) And (AngleHizaMin < (180 - ValAngleHizaL)) Or _
-                (AngleHizaMax >= (180 - ValAngleHizaR)) And (AngleHizaMin < (180 - ValAngleHizaR)) _
-            Then
+            ' 膝曲げ判定（180-実測値で比較）
+            If (180 - ValAngleHizaL > AngleHizaMin And 180 - ValAngleHizaL <= AngleHizaMax) Or _
+               (180 - ValAngleHizaR > AngleHizaMin And 180 - ValAngleHizaR <= AngleHizaMax) Then
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_HIZAMAGE) = 1
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_HIZAMAGE - 1) = 1
             Else
@@ -346,240 +315,130 @@ Sub makeGraphJisya()
                 PointCalcSheetArray(i, COLUMN_DATA_RESULT_GH_HIZAMAGE - 1) = 0
             End If
 
-            'キャプション時刻のセル代入
-            PointCalcSheetArray(i, COLUMN_ROUGH_TIME) = Format(t, "hh:mm:ss") & "," & mSeconds
-
         Next
 
-        '-------------------------------------------------------------------------------------------
-        'ここから配列の中身をポイント計算シートに書込
-        '-------------------------------------------------------------------------------------------
+        ' 判定・角度の書き戻し
         .Range(.Cells(1, 1), .Cells(max_row_num, COLUMN_MAX_NUMBER)) = PointCalcSheetArray
-
-        '外販用膝角度
         .Range(.Cells(2, COLUMN_GH_HIZA_L), .Cells(max_row_num, COLUMN_GH_HIZA_L)).Value = HizaAngleLArray
         .Range(.Cells(2, COLUMN_GH_HIZA_R), .Cells(max_row_num, COLUMN_GH_HIZA_R)).Value = HizaAngleRArray
 
     End With
 
-    '表示・更新をオンに戻す
     Call restartUpdate
 
 End Sub
 
 
-'姿勢点の判定
-' 引数1 ：なし
-' 戻り値：なし
+'------------------------------------------------------------
+' 姿勢点の判定とグラフ用データ生成
+'
+' 引数:
+'   なし
+'
+' 処理概要:
+'   - 条件設定シートから各姿勢点（1〜10点）のしきい値と名称を読み込み
+'   - 条件設定シートの構造に基づいて、逆順で読み出し
+'   - 各フレームに対して姿勢点を判定し、出力列に記録
+'   - グラフ色分け用のデータ列を生成
+'
+' 備考:
+'   - 表示更新を一時停止して処理速度を改善
+'------------------------------------------------------------
 Sub makeGraphZensya()
 
-    '表示・更新をオフにする
     Call stopUpdate
 
-    Dim KoshiMax(10)           As Double '字幕トラック1用 姿勢素点1～10の各腰の上限閾値
-    Dim KoshiMin(10)           As Double '字幕トラック1用 姿勢素点1～10の各腰の下限閾値
-    Dim HizaMax(10)            As Double '字幕トラック1用 姿勢素点1～10の各膝の上限閾値
-    Dim HizaMin(10)            As Double '字幕トラック1用 姿勢素点1～10の各膝の下限閾値
+    Dim KoshiMax(10)            As Double
+    Dim KoshiMin(10)            As Double
+    Dim HizaMax(10)             As Double
+    Dim HizaMin(10)             As Double
+    Dim CaptionName2(10)        As String
+    Dim CaptionName3Koshimage   As String
+    Dim CaptionName3Hizamage    As String
+    Dim Koshimage               As Double
+    Dim Hizamage                As Double
+    Dim i                       As Long
+    Dim j                       As Long
+    Dim data_no                 As Long
+    Dim max_row_num             As Long
+    Dim KoshiAngle              As Double
+    Dim HizaAngleL              As Double
+    Dim HizaAngleR              As Double
+    Dim correctPose             As Boolean
+    Dim mSeconds                As String
+    Dim totalSecond             As Long
+    Dim hour                    As Long
+    Dim min                     As Long
+    Dim sec                     As Long
+    Dim t                       As Date
+    Dim ds                      As String
 
-    Dim CaptionName2(10)       As String '姿勢素点1～10の字幕文字列
-
-    Dim work_time              As Double  '作業時間
-
-    Dim KoshiAngle             As Double
-
-    Dim HizaAngleR             As Double
-    Dim HizaAngleL             As Double
-
-    Dim start_frame            As Long
-    Dim end_frame              As Long
-    Dim fps                    As Double 'フレームレート
-    Dim correctPose            As Boolean
-    Dim mSeconds               As String
-    Dim totalSecond            As Long
-    Dim tempSecond             As Long
-    Dim hour, min, sec         As Long
-    Dim t                      As Date
-    Dim ds                     As String
-
-    Dim max_row_num            As Long '行の末尾
-    Dim max_array_num          As Long '配列の末尾
-
-    Dim i                      As Long
-    Dim j                      As Long
-    Dim data_no                As Long
-
-    Dim CaptionName3Koshimage  As String '字幕トラック2用 3段目 腰曲げの字幕文字列
-    Dim CaptionName3Hizamage   As String '字幕トラック2用 3段目 膝曲げの字幕文字列
-    Dim Koshimage              As Double '字幕トラック2用 腰曲げ判定用の閾値
-    Dim Hizamage               As Double '字幕トラック2用 膝曲げ判定用の閾値
-
-
-    '各姿勢の名前と条件の読み出し
-    'MinとMaxが直感的でないので注意
+    ' 姿勢のしきい値と名称をまとめて読み出し
     With ThisWorkbook.Worksheets("条件設定シート")
-        CaptionName2(10) = .Cells(6, 2) '10点の姿勢しきい値
-        KoshiMax(10) = .Cells(8, 7) 'x以上
-        KoshiMin(10) = .Cells(9, 7) 'x未満
-        HizaMax(10) = .Cells(11, 7)
-        HizaMin(10) = .Cells(12, 7)
+        Dim rowOffsets As Variant
+        rowOffsets = Array(168, 150, 132, 114, 96, 78, 60, 42, 24, 6) ' 1〜10点の起点行（逆順）
 
-        CaptionName2(9) = .Cells(24, 2) '9点の姿勢しきい値
-        KoshiMax(9) = .Cells(26, 7)
-        KoshiMin(9) = .Cells(27, 7)
-        HizaMax(9) = .Cells(29, 7)
-        HizaMin(9) = .Cells(30, 7)
+        For j = 1 To 10
+            Dim baseRow As Long
+            baseRow = rowOffsets(j - 1)
+            CaptionName2(j) = .Cells(baseRow, 2)
+            KoshiMax(j) = .Cells(baseRow + 2, 7)
+            KoshiMin(j) = .Cells(baseRow + 3, 7)
+            HizaMax(j) = .Cells(baseRow + 5, 7)
+            HizaMin(j) = .Cells(baseRow + 6, 7)
+        Next j
 
-        CaptionName2(8) = .Cells(42, 2) '8点の姿勢しきい値
-        KoshiMax(8) = .Cells(44, 7)
-        KoshiMin(8) = .Cells(45, 7)
-        HizaMax(8) = .Cells(47, 7)
-        HizaMin(8) = .Cells(48, 7)
-
-        CaptionName2(7) = .Cells(60, 2) '7点の姿勢しきい値
-        KoshiMax(7) = .Cells(62, 7)
-        KoshiMin(7) = .Cells(63, 7)
-        HizaMax(7) = .Cells(65, 7)
-        HizaMin(7) = .Cells(66, 7)
-
-        CaptionName2(6) = .Cells(78, 2) '6点の姿勢しきい値
-        KoshiMax(6) = .Cells(80, 7)
-        KoshiMin(6) = .Cells(81, 7)
-        HizaMax(6) = .Cells(83, 7)
-        HizaMin(6) = .Cells(84, 7)
-
-        CaptionName2(5) = .Cells(96, 2) '5点の姿勢しきい値
-        KoshiMax(5) = .Cells(98, 7)
-        KoshiMin(5) = .Cells(99, 7)
-        HizaMax(5) = .Cells(101, 7)
-        HizaMin(5) = .Cells(102, 7)
-
-        CaptionName2(4) = .Cells(114, 2) '4点の姿勢しきい値
-        KoshiMax(4) = .Cells(116, 7)
-        KoshiMin(4) = .Cells(117, 7)
-        HizaMax(4) = .Cells(119, 7)
-        HizaMin(4) = .Cells(120, 7)
-
-        CaptionName2(3) = .Cells(132, 2) '3点の姿勢しきい値
-        KoshiMax(3) = .Cells(134, 7)
-        KoshiMin(3) = .Cells(135, 7)
-        HizaMax(3) = .Cells(137, 7)
-        HizaMin(3) = .Cells(138, 7)
-
-        CaptionName2(2) = .Cells(150, 2) '2点の姿勢しきい値
-        KoshiMax(2) = .Cells(152, 7)
-        KoshiMin(2) = .Cells(153, 7)
-        HizaMax(2) = .Cells(155, 7)
-        HizaMin(2) = .Cells(156, 7)
-
-        CaptionName2(1) = .Cells(168, 2) '1点の姿勢しきい値
-        KoshiMax(1) = .Cells(170, 7)
-        KoshiMin(1) = .Cells(171, 7)
-        HizaMax(1) = .Cells(173, 7)
-        HizaMin(1) = .Cells(174, 7)
-
-        '腰曲げ、膝曲げ用
-        '文字列、しきい値を取得
         CaptionName3Koshimage = .Cells(210, 2)
         Koshimage = .Cells(212, 7)
         CaptionName3Hizamage = .Cells(228, 2)
         Hizamage = .Cells(230, 7)
-
     End With
-
 
     With ThisWorkbook.Sheets("ポイント計算シート")
-
-        '処理する行数を取得（3列目の最終セル）
         max_row_num = getLastRow()
 
-        max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
-
-        '姿勢判定してセルに代入
         For i = 2 To max_row_num
-
-            '-------------------------------------------------------------------------------------------
-            '姿勢分類(1～10)を判定する
-            '-------------------------------------------------------------------------------------------
+            KoshiAngle = CDbl(.Cells(i, COLUMN_KOSHI_ANGLE).Value)
+            HizaAngleL = CDbl(.Cells(i, COLUMN_HIZA_L_ANGLE).Value)
+            HizaAngleR = CDbl(.Cells(i, COLUMN_HIZA_R_ANGLE).Value)
+            mSeconds = Right(Format(WorksheetFunction.RoundDown(.Cells(i, 2), 3), "0.000"), 3)
+            totalSecond = WorksheetFunction.RoundDown(.Cells(i, 2), 0)
+            hour = totalSecond \ 3600
+            min = (totalSecond Mod 3600) \ 60
+            sec = totalSecond Mod 60
+            t = TimeSerial(hour, min, sec)
+            ds = Format(t, "hh:mm:ss")
+            correctPose = False
 
             For j = 2 To 10
-                mSeconds = Right(Format(WorksheetFunction.RoundDown(.Cells(i, 2), 3), "0.000"), 3) '小数点以下のみ取得
-                totalSecond = Application.WorksheetFunction.RoundDown(.Cells(i, 2), 0)
-                hour = WorksheetFunction.RoundDown(totalSecond / 3600, 0)
-                min = WorksheetFunction.RoundDown((totalSecond Mod 3600) / 60, 0)
-                sec = totalSecond Mod 60
-                t = TimeSerial(hour, min, sec)
-                ds = Format(t, "hh:mm:ss")
-                correctPose = False
+                If KoshiMin(j) >= KoshiAngle And KoshiMax(j) < KoshiAngle And _
+                   ((HizaMin(j) >= HizaAngleL And HizaAngleL > HizaMax(j)) Or _
+                    (HizaMin(j) >= HizaAngleR And HizaAngleR > HizaMax(j))) Then
 
-                '関節角度の読み出し
-                KoshiAngle = CDbl(.Cells(i, COLUMN_KOSHI_ANGLE).Value)
-                HizaAngleL = CDbl(.Cells(i, COLUMN_HIZA_L_ANGLE).Value)
-                HizaAngleR = CDbl(.Cells(i, COLUMN_HIZA_R_ANGLE).Value)
-
-                If ( _
-                KoshiMin(j) >= KoshiAngle And _
-                KoshiMax(j) < KoshiAngle) And (( _
-                HizaMin(j) >= HizaAngleL And _
-                HizaAngleL > HizaMax(j)) Or _
-                HizaMin(j) >= HizaAngleR And ( _
-                HizaAngleR > HizaMax(j))) Then
-                    correctPose = True
-
-                    'キャプション時刻のセル代入
-                    .Cells(i, COLUMN_ROUGH_TIME).Value = Format(t, "hh:mm:ss") & "," & mSeconds
-
-                    '判定結果を元データ用セルに入力
+                    .Cells(i, COLUMN_ROUGH_TIME).Value = ds & "," & mSeconds
                     .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value = j
-
-                    '判定結果を字幕＆集計用セルに入力
                     .Cells(i, COLUMN_DATA_RESULT_FIX).Value = j
-
-                    '姿勢分類が見つかったらFor(j)を抜ける
+                    correctPose = True
                     Exit For
                 End If
-            Next
+            Next j
 
-            '該当姿勢がなかった場合は1点の姿勢にする
-            If correctPose = False Then
-                'キャプション時刻のセル代入
-                .Cells(i, COLUMN_ROUGH_TIME).Value = Format(t, "hh:mm:ss") & "," & mSeconds
-                '判定結果を元データ用セルに入力
+            If Not correctPose Then
+                .Cells(i, COLUMN_ROUGH_TIME).Value = ds & "," & mSeconds
                 .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value = 1
-                '判定結果を字幕＆集計用セルに入力
                 .Cells(i, COLUMN_DATA_RESULT_FIX).Value = 1
             End If
-        Next
+        Next i
 
-        'グラフ描画の色分けのためのフラグ生成
+        ' グラフ描画用フラグ（色分け）
         For i = 2 To max_row_num
-
-            '処理行の姿勢素点をdata_noへ一時記憶する
             data_no = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
-
-            '姿勢素点の緑、黄、赤の色分け描画用データを出力
-            If _
-            data_no >= DATA_SEPARATION_GREEN_BOTTOM And _
-            data_no <= DATA_SEPARATION_GREEN_TOP Then
-                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = data_no
-                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_RED).Value = 0
-            ElseIf _
-            data_no >= DATA_SEPARATION_YELLOW_BOTTOM And _
-            data_no <= DATA_SEPARATION_YELLOW_TOP Then
-                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = data_no
-                .Cells(i, COLUMN_DATA_RESULT_RED).Value = 0
-            ElseIf _
-            data_no >= DATA_SEPARATION_RED_BOTTOM And _
-            data_no <= DATA_SEPARATION_RED_TOP Then
-                .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = 0
-                .Cells(i, COLUMN_DATA_RESULT_RED).Value = data_no
-            End If
-        Next
+            .Cells(i, COLUMN_DATA_RESULT_GREEN).Value = IIf(data_no >= DATA_SEPARATION_GREEN_BOTTOM And data_no <= DATA_SEPARATION_GREEN_TOP, data_no, 0)
+            .Cells(i, COLUMN_DATA_RESULT_YELLOW).Value = IIf(data_no >= DATA_SEPARATION_YELLOW_BOTTOM And data_no <= DATA_SEPARATION_YELLOW_TOP, data_no, 0)
+            .Cells(i, COLUMN_DATA_RESULT_RED).Value = IIf(data_no >= DATA_SEPARATION_RED_BOTTOM And data_no <= DATA_SEPARATION_RED_TOP, data_no, 0)
+        Next i
     End With
 
-    '表示・更新をオンに戻す
     Call restartUpdate
 
 End Sub
