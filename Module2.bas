@@ -530,26 +530,6 @@ Function removeCaptionNoise(fps As Double)
 End Function
 
 
-'秒をhh:mm:ss:msに変換する
-Function timeConvert(seconds As Double) As String
-
-    Dim milliseconds        As Long
-    Dim remainingSeconds    As Long
-    Dim minutes             As Long
-    Dim hours               As Long
-
-    'ずれ防止のために小数点以下を切り捨てミリ秒・秒から先に出す
-    milliseconds = (seconds - Int(seconds)) * 10000
-    seconds = Int(seconds)
-
-    remainingSeconds = seconds Mod 60
-    minutes = (seconds Mod 3600) \ 60
-    hours = seconds \ 3600
-
-    timeConvert = Format(hours, "00") & ":" & Format(minutes, "00") & ":" & Format(remainingSeconds, "00") & "." & Format(milliseconds, "0000")
-End Function
-
-
 '姿勢重量点調査票で指定された評価除外、評価強制をポイント計算シートに反映させる
 'ポイント計算シートのフラグから時間を計算して、姿勢重量点調査票に転記する
 '１回目はPythonプログラムから値をもらう
@@ -1494,6 +1474,47 @@ Sub OutputOtrs()
     ThisWorkbook.Save
     targetWorkbook.Close savechanges:=True
 End Sub
+
+
+'------------------------------------------------------------
+' 秒数を hh:mm:ss.ffff 形式の文字列に変換する関数
+'
+' 引数:
+'   seconds : 変換対象の秒数（小数あり）
+'
+' 戻り値:
+'   hh:mm:ss.ffff 形式の文字列（ミリ秒は4桁）
+'
+' 備考:
+'   - 小数部はミリ秒（1/10000）として切り出し
+'   - 時間・分・秒をゼロ埋めで整形
+'------------------------------------------------------------
+Function timeConvert(seconds As Double) As String
+
+    Dim ms As Long
+    Dim sec As Long
+    Dim min As Long
+    Dim hr As Long
+
+    ' 小数部からミリ秒（1/10000）を計算（ずれ防止のため先に処理）
+    ms = (seconds - Int(seconds)) * 10000
+
+    ' 秒数を整数に変換（時・分・秒用）
+    seconds = Int(seconds)
+
+    ' 時・分・秒を算出
+    sec = seconds Mod 60
+    min = (seconds \ 60) Mod 60
+    hr = seconds \ 3600
+
+    ' フォーマットして返却（hh:mm:ss.ffff）
+    timeConvert = Format(hr, "00") & ":" & _
+                  Format(min, "00") & ":" & _
+                  Format(sec, "00") & "." & _
+                  Format(ms, "0000")
+
+End Function
+
 
 'fpsの値を取得する
 '戻り値：fpsの値
