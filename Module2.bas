@@ -1,5 +1,4 @@
-Option Explicit '変数の宣言を強制
-
+Option Explicit
 
 '======================================================================================
 '条件設定シートの各データの行番号、列番号を定義 (拳上概要の定数もここで定義）
@@ -44,7 +43,6 @@ Const COLUMN_DATA_RESULT_FIX                        As Long = 208
 Const COLUMN_DATA_RESULT_GREEN                      As Long = 209
 Const COLUMN_DATA_RESULT_YELLOW                     As Long = 210
 Const COLUMN_DATA_RESULT_RED                        As Long = 211
-Const COLUMN_CAPTION_TRACK1                         As Long = 212 'デバッグ用（普段は使わない）
 
 Const COLUMN_DATA_MISSING_SECTION                   As Long = 219
 
@@ -58,7 +56,6 @@ Const COLUMN_DATA_HIZAMAGE_PREDICT_SECTION          As Long = 231
 Const COLUMN_DATA_HIZAMAGE_MISSING_SECTION          As Long = 232
 Const COLUMN_HIZAMAGE_FORCED_SECTION                As Long = 233
 Const COLUMN_HIZAMAGE_RESULT                        As Long = 249
-Const COLUMN_CAPTION_TRACK2                         As Long = 235    'デバッグ用（普段は使わない）
 
 Const COLUMN_TEKUBI_RZ_SPEED                        As Long = 237    '右手首Ｚ位置の差
 Const COLUMN_TEKUBI_LZ_SPEED                        As Long = 238    '左手首Ｚ位置の差
@@ -141,7 +138,7 @@ Const LIMIT_COLUMN           As Long = 16200
 '======================================================================================
 '字幕情報の定義
 '======================================================================================
-Const CAPTION_TRACK2_FILE_NAME_SOEJI           As String = "2" '字幕トラック２用のファイル名末尾につける添字
+Const CAPTION_TRACK2_FILE_NAME_SOEJI           As String = "2" '字幕トラック2用のファイル名末尾につける添字
 '各種字幕のフォントサイズ係数
 '分母の値のため、値が小さいほど文字は大きい
 '動画が縦の時
@@ -616,7 +613,7 @@ Sub makeGraphZensya()
                     '姿勢分類が見つかったらFor(j)を抜ける
                     Exit For
                 End If
-            Next 'For j = 2 To 10
+            Next
 
             '該当姿勢がなかった場合は1点の姿勢にする
             If correctPose = False Then
@@ -801,7 +798,7 @@ Sub fixSheetZensya()
     Dim start_array_num             As Long
     Dim end_array_num               As Long
 
-    Dim data_array(15)              As Long '姿勢重量点１～１０点、欠損区間、推定区間、拳上、腰曲げ、膝曲げの時間を合計するために使用
+    Dim data_array(15)              As Long '姿勢重量点 1 ~ 10 点、欠損区間、推定区間、拳上、腰曲げ、膝曲げの時間を合計するために使用
     Dim data_no                     As Long  'data_arrayの配列番号。1～10:姿勢重量点 11:欠損区間 12:推定区間 13:拳上 14:腰曲げ 15:膝曲げ
 
     Dim removeFrames                As Long
@@ -1121,12 +1118,12 @@ Function outputCaption(movieName As String)
     Dim track1_font_size1           As Long '字幕トラック1用  上段のサイズ
     Dim track1_font_size2           As Long '字幕トラック1用  下段のサイズ
 
-    Dim track2_coef_font_size1      As Long '字幕トラック2用 １段目のサイズ調整用係数
-    Dim track2_coef_font_size2      As Long '字幕トラック2用 ２段目のサイズ調整用係数
-    Dim track2_coef_font_size3      As Long '字幕トラック2用 ３段目のサイズ調整用係数
-    Dim track2_font_size1           As Long '字幕トラック2用 １段目のサイズ
-    Dim track2_font_size2           As Long '字幕トラック2用 ２段目のサイズ
-    Dim track2_font_size3           As Long '字幕トラック2用 ３段目のサイズ
+    Dim track2_coef_font_size1      As Long '字幕トラック2用 1段目のサイズ調整用係数
+    Dim track2_coef_font_size2      As Long '字幕トラック2用 2段目のサイズ調整用係数
+    Dim track2_coef_font_size3      As Long '字幕トラック2用 3段目のサイズ調整用係数
+    Dim track2_font_size1           As Long '字幕トラック2用 1段目のサイズ
+    Dim track2_font_size2           As Long '字幕トラック2用 2段目のサイズ
+    Dim track2_font_size3           As Long '字幕トラック2用 3段目のサイズ
 
     Dim WorkName()                  As String
 
@@ -1135,18 +1132,18 @@ Function outputCaption(movieName As String)
     Dim CaptionName2(10)            As String  '字幕トラック1用 下段 評価除外(添え字0)+姿勢素点1～10(添え字1～10)の字幕文字列
     Dim CaptionNo2                  As Long 'CaptionName2(10)にアクセスする際の添え字格納用変数
 
-    Dim CaptionName2Koshimage       As String '字幕トラック2用 ２段目 腰曲げデータ区間の字幕文字列
-    Dim CaptionName2Hizamage        As String '字幕トラック2用 ２段目 膝曲げデータ区間の字幕文字列
+    Dim CaptionName2Koshimage       As String '字幕トラック2用 2段目 腰曲げデータ区間の字幕文字列
+    Dim CaptionName2Hizamage        As String '字幕トラック2用 2段目 膝曲げデータ区間の字幕文字列
 
     Dim CaptionName3Koshimage       As String '字幕トラック2用 ３段目 腰曲げの字幕文字列
     Dim CaptionName3Hizamage        As String '字幕トラック2用 ３段目 膝曲げの字幕文字列
 
     Dim ColorName1                  As String '字幕トラック1用 上段右側（信頼度 ）の色
     Dim ColorName2                  As String '字幕トラック1用 下段  （姿勢素点）の色
-    Dim ColorName2Koshimage         As String '字幕トラック2用 ２段目 （腰曲げデータ区間 ）の色
-    Dim ColorName2Hizamage          As String '字幕トラック2用 ２段目 （膝曲げデータ区間 ）の色
-    Dim ColorName3Koshimage         As String '字幕トラック2用 ３段目 （腰曲げ ）の色
-    Dim ColorName3Hizamage          As String '字幕トラック2用 ３段目 （膝曲げ ）の色
+    Dim ColorName2Koshimage         As String '字幕トラック2用 2段目 （腰曲げデータ区間 ）の色
+    Dim ColorName2Hizamage          As String '字幕トラック2用 2段目 （膝曲げデータ区間 ）の色
+    Dim ColorName3Koshimage         As String '字幕トラック2用 3段目 （腰曲げ ）の色
+    Dim ColorName3Hizamage          As String '字幕トラック2用 3段目 （膝曲げ ）の色
 
     Dim Track1OutputString1         As String '字幕トラック1用：上段文字列
     Dim Track1OutputString2         As String '字幕トラック1用：下段文字列
@@ -1603,8 +1600,8 @@ Sub OutputOtrs()
         StrFileName = Left(StrFileName, PosExt - 1)
     End If
 
-  'Now関数で取得した現在日付をFormatで整形して変数に格納
-  strYYYYMMDD = Format(Now, "yyyymmdd_HHMMSS_")
+    'Now関数で取得した現在日付をFormatで整形して変数に格納
+    strYYYYMMDD = Format(Now, "yyyymmdd_HHMMSS_")
 
     With Application
         .ScreenUpdating = False
