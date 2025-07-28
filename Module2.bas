@@ -911,7 +911,7 @@ End Function
 '帳票更新ボタンが押された時の処理
 ' 引数  ：なし
 ' 戻り値：なし
-Function ClickUpdateDataCore()
+Function ClickUpdateData()
     Dim tstart_click As Double
     Dim dotPoint     As String
     Dim workbookName As String
@@ -926,21 +926,15 @@ Function ClickUpdateDataCore()
     '作業分割、時間測定
     Call fixSheetZensya
 
+    ' 拡張子を除いたブック名を取得
     dotPoint = InStrRev(ActiveWorkbook.Name, ".")
     workbookName = Left(ActiveWorkbook.Name, dotPoint - 1)
 
+    ' キャプションを出力
     Call outputCaption(workbookName)
     Debug.Print " 更新時間" & Format$(Timer - tstart_click, "0.00") & " sec."
 
 End Function
-
-
-'帳票更新ボタンが押された時の処理
-' 引数１：なし
-' 戻り値：なし
-Sub ClickUpdateData()
-    Call ClickUpdateDataCore
-End Sub
 
 
 ' 概要 : 関節角度、3dデータのcsvをコピー貼り付けする
