@@ -937,74 +937,88 @@ Function ClickUpdateData()
 End Function
 
 
-' 概要 : 関節角度、3dデータのcsvをコピー貼り付けする
-' 呼び元のシート : マクロテスト
-' 補足 : 本ファイルと同じディレクトリにcsvファイルを置いておく
-' 引数1 ：フレームレート
-' 引数2 ：動画横幅の値
-' 引数3 ：csvファイル名
-' 引数4 ：動画縦の値 動画の向きによって字幕文字サイズを調整するために使用
-' 戻り値：なし
+'------------------------------------------------------------
+' 3DデータCSVを読み込んで「ポイント計算シート」へ貼り付ける処理
+'
+' 引数:
+'   fps           : フレームレート（例: 30）
+'   video_width   : 動画の横幅（ピクセル単位）
+'   csv_file_name : 3Dデータが格納されたCSVファイル名（拡張子込み）
+'   video_height  : 動画の縦幅（字幕のサイズ調整などに使用）
+'
+' 機能:
+'   - 指定されたCSVファイルを開き、データを「ポイント計算シート」のD2セル以降に貼り付け
+'   - 時間軸データ（列A〜C）を自動生成
+'   - fps・動画サイズ情報を特定セルに保存
+'   - 処理前後で画面更新やイベントを一時停止／復帰
+'
+' 備考:
+'   - CSVファイルはこのブックと同じフォルダに配置しておくこと
+'   - 貼り付け先シート名や構造に依存するため注意
+'------------------------------------------------------------
 Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String, video_height As Double)
 
-    Dim wb     As Variant
-    Dim ws     As Variant
-    Dim MaxRow As Long
-    Dim i      As Long
+    Dim csvWb   As Workbook
+    Dim csvWs   As Worksheet
+    Dim pasteWs As Worksheet
+    Dim maxRow  As Long
+    Dim i       As Long
+    Dim csvPath As String
 
+    ' 初期設定：画面更新・イベント無効化・手動計算モード
     With Application
         .ScreenUpdating = False
         .EnableEvents = False
         .Calculation = xlCalculationManual
     End With
 
+    ' 貼り付け先のシート
+    Set pasteWs = ThisWorkbook.Sheets("ポイント計算シート")
     s_PointCalc.Visible = True
-    Sheets("ポイント計算シート").Select
-    Range("D2").Select
 
-    Set wb = Workbooks.Open(ThisWorkbook.Path & "\" & csv_file_name)
+    ' CSVファイルを開く
+    csvPath = ThisWorkbook.Path & "\" & csv_file_name
+    Set csvWb = Workbooks.Open(csvPath)
+    Set csvWs = csvWb.Sheets(1)
 
-    With wb
-        Set ws = .Sheets(1)
+    ' CSVデータをコピーして貼り付け（D2セル以降に値と書式を貼り付け）
+    With csvWs
+        .Range("B2", .Cells.SpecialCells(xlCellTypeLastCell)).Copy
+    End With
+    pasteWs.Range("D2").PasteSpecial xlPasteValuesAndNumberFormats
+    Application.CutCopyMode = False
 
-        Range("B2").Select
-        Range(Selection, ActiveCell.SpecialCells(xlLastCell)).Copy
+    ' CSVブックを保存せずに閉じる
+    csvWb.Close SaveChanges:=False
 
-        'このブックの「貼付先」シートへ値貼り付け
-        ThisWorkbook.Worksheets("ポイント計算シート").Range("D2").PasteSpecial _
-            xlPasteValuesAndNumberFormats
+    ' 最下行を取得し、列A〜Cに時間情報を記入
+    maxRow = pasteWs.Cells(pasteWs.Rows.Count, "D").End(xlUp).Row
+    For i = 2 To maxRow
+        pasteWs.Cells(i, 1).Value = i - 2                            ' A列: フレーム番号
+        pasteWs.Cells(i, 2).Value = (i - 2) * (1 / fps)              ' B列: 経過時間（秒）
+        pasteWs.Cells(i, 3).FormulaR1C1 = "=LEFT(TEXT(RC[-1]/(24*60*60), ""hh:mm:ss.000""), 8)" ' C列: 時刻文字列
+    Next i
 
-        'コピー状態を解除
-        Application.CutCopyMode = False
-
-        '保存せず終了
-        .Close False
+    ' 動画情報を保存（列GR, GS, GT = 列197〜199）
+    With pasteWs
+        .Cells(2, 199).Value = fps
+        .Cells(2, 198).Value = video_width
+        .Cells(2, 197).Value = video_height
     End With
 
-    ' A から C の時間を表すセルを実体化させる
-    ' angle.csvを張り付けたあとの最下行番号を取得する
-    MaxRow = Range("D2").End(xlDown).row
-    For i = 0 To MaxRow - 2
-        Range("A" & i + 2).Value = i
-        Range("B" & i + 2).Value = i * (1 / fps)
-        Range("C" & i + 2).FormulaR1C1 = "=LEFT(TEXT(RC[-1]/(24*60*60), ""hh:mm:ss.000""), 8)"
-    Next
-
-    'fps値の保存
-    ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199) = fps
-    'video_width値の保存
-    ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 198) = video_width
-    'video_height値の保存 動画の向きによって字幕文字サイズを調整するために使用
-    ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 197) = video_height
-
+    ' このブックを保存
     ThisWorkbook.Save
 
+    ' 復帰処理：画面更新・イベント有効化・自動計算モード
     With Application
         .ScreenUpdating = True
         .EnableEvents = True
         .Calculation = xlCalculationAutomatic
     End With
+
+    ' シートを非表示に戻す
     s_PointCalc.Visible = xlSheetVeryHidden
+
 End Sub
 
 
