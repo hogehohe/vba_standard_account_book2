@@ -359,7 +359,7 @@ Sub kobusiage_hantei()
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
 
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
@@ -379,7 +379,7 @@ Sub kobusiage_hantei()
         '-------------------------------------------------------------------------------------------
         'ここから拳上判定
         '-------------------------------------------------------------------------------------------
-        fps = .Cells(2, 199).Value 'フレームレートを取得
+        fps = getFps()
 
         '手首と肩の高さを配列に格納
         For i = 0 To max_array_num
@@ -616,7 +616,7 @@ Sub makeGraphJisya()
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
 
         'ポイント計算シートの中身を配列に読込
         PointCalcSheetArray = .Range(.Cells(1, 1), .Cells(max_row_num, COLUMN_MAX_NUMBER))
@@ -827,7 +827,7 @@ Sub makeGraphZensya()
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
 
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
@@ -956,7 +956,7 @@ Function removeCaptionNoise(fps As Double)
     With ThisWorkbook.Sheets("ポイント計算シート")
 
         '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
         max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
         '下方向へ探索する際の起点(i), 終点(i_max)
@@ -1067,11 +1067,10 @@ Sub fixSheetJisya()
     Dim format_time         As String
 
     'フレームレートを取得
-    fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
+    fps = getFps()
 
     'ポイント計算シートの最終行を取得
-    max_row_num = ThisWorkbook.Worksheets("ポイント計算シート").Cells(1, 2).End(xlDown).row
-
+    max_row_num = getLastRow()
     '処理する追加行数を取得する
     '"要素数"のセル位置の移動量を調べる  ※最大999行(<1050)にする
     expand_no = 0
@@ -1365,10 +1364,10 @@ Sub fixSheetZensya()
     Dim sheet_index                 As Long
 
     'フレームレートを取得
-    fps = s_PointCalc.Cells(2, 199)
+    fps = getFps()
 
     'ポイント計算シートの最終行を取得
-    max_row_num = s_PointCalc.Cells(1, 2).End(xlDown).row
+    max_row_num = getLastRow()
 
     '処理する追加行数を取得する
     'その他（時間計7.5H）のセル位置の移動量を調べる  ※最大999行(<979)にする
@@ -1779,10 +1778,10 @@ Function outputCaption(movieName As String)
     Track2FileName = ActiveWorkbook.Path & "\" & movieName & CAPTION_TRACK2_FILE_NAME_SOEJI & ".srt"
 
     'フレームレートの読み出し
-    fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
+    fps = getFps()
 
     '処理する行数を取得（3列目の最終セル）
-    max_row_num = ThisWorkbook.Sheets("ポイント計算シート").Cells(1, 3).End(xlDown).row
+    max_row_num = getLastRow()
 
     max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
 
@@ -1854,7 +1853,7 @@ Function outputCaption(movieName As String)
         Open Track1FileName For Output As #1
 
         '処理する行数を取得（3列目の最終セル）
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
 
         'ファイル出力
         For i = 2 To max_row_num
@@ -1949,7 +1948,7 @@ Function ClickUpdateDataCore()
     Dim fps          As Double
 
     tstart_click = Timer
-    fps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199)
+    fps = getFps()
 
     'ノイズ除去
     Call removeCaptionNoise(fps)
@@ -2093,7 +2092,7 @@ Sub MacroUpdateData(movieName As String, fps As Double)
         Next
 
         'fps値の保存
-        fps = .Cells(2, 199)
+        fps = getFps()
 
     End With
 
@@ -2223,7 +2222,7 @@ Sub OutputOtrs()
         '(0) 他"
 
     With ThisWorkbook.Sheets("ポイント計算シート")
-        max_row_num = .Cells(1, 3).End(xlDown).row
+        max_row_num = getLastRow()
         targetRowCount = 1
         Dim lastI As Long
 
@@ -2270,3 +2269,16 @@ Sub OutputOtrs()
     ThisWorkbook.Save
     targetWorkbook.Close savechanges:=True
 End Sub
+
+'fpsの値を取得する
+'戻り値：fpsの値
+Function getFps() As Double
+    getFps = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 199).Value
+End Function
+
+
+'最終行を取得する
+'戻り値：最終行
+Function getLastRow() As Long
+    getLastRow = ThisWorkbook.Sheets("ポイント計算シート").Cells(1, 3).End(xlDown).row
+End Function
