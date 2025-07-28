@@ -128,52 +128,41 @@ End Function
 '   ws       - 対象のワークシート
 '   endline  - 罫線を引く対象の最終列
 '------------------------------------------------------------
+'------------------------------------------------------------
+' 罫線の複製処理
+'
+' 「G2:EZ26」のレイアウトを基準として、右方向へ罫線や装飾を複製
+'
+' 引数:
+'   ws       - 対象のワークシート
+'   endline  - 罫線を引く対象の最終列（上限補正あり）
+'------------------------------------------------------------
 Private Sub autoFillLine(ws As Worksheet, endline As Long)
-    '定数定義
-    Const BASE_ROW_START    As Long = 2     ' 雛形の罫線上端（2行目）
-    Const BASE_ROW_END      As Long = 26    ' 雛形の罫線下端（26行目）
-    Const BASE_COL_START    As Long = 7     ' G列（=7列目）
-    Const BASE_COL_END      As Long = 155   ' EZ列（=155列目）
+    Dim ruleLineColumnNum   As Long         ' 実際に処理対象とする列番号
+    Dim ruleLineColumnAlf   As String       ' 列番号をアルファベット表記に変換したもの
 
-    Dim MAX_COLUMN_LIMIT    As Long: MAX_COLUMN_LIMIT  = SHEET_LIMIT_COLUMN ' シートの使用可能列数の上限
-    Dim ruleLineColumnNum   As Long: ruleLineColumnNum = endline
-
-    '実際の処理対象列を制限付きで決定
-    If ruleLineColumnNum > MAX_COLUMN_LIMIT Then
-        ruleLineColumnNum = MAX_COLUMN_LIMIT
+    ' 上限を超える列数の場合、制限値までに抑える
+    ruleLineColumnNum = endline
+    If ruleLineColumnNum > SHEET_LIMIT_COLUMN Then
+        ruleLineColumnNum = SHEET_LIMIT_COLUMN
     End If
 
-    '対象範囲をクリア（色や罫線含め全消去）
+    ' オートフィル先の終了列（アルファベット表記）を取得
+    ruleLineColumnAlf = Split(ws.Cells(1, ruleLineColumnNum).Address(True, False), "$")(0)
+
+    ' 対象範囲をクリア（色や罫線含め全消去）
     Call clear(ws)
 
-    '雛形のレイアウト範囲（G2:EZ26）を定義
-    Dim baseRange As Range
-    Set baseRange = ws.Range( _
-        ws.Cells(BASE_ROW_START, BASE_COL_START), _
-        ws.Cells(BASE_ROW_END, BASE_COL_END) _
-    )
-
-    'オートフィルの展開先範囲（G2:～指定列:26）を定義
-    Dim fillRange As Range
-    Set fillRange = ws.Range( _
-        ws.Cells(BASE_ROW_START, BASE_COL_START), _
-        ws.Cells(BASE_ROW_END, ruleLineColumnNum) _
-    )
-
-    'オートフィルを実行（書式・罫線を右方向に展開）
-    baseRange.AutoFill Destination:=fillRange, Type:=xlFillDefault
+    ' レイアウトのベース範囲（G2:EZ26）を右方向へオートフィル
+    ws.Range("G2:EZ26").AutoFill _
+        Destination:=ws.Range("G2:" & ruleLineColumnAlf & 26), _
+        Type:=xlFillDefault
 
     ' 不要な範囲の罫線を消去（右端からXFD列まで）
-    If ruleLineColumnNum < Columns.Count Then
-        Dim clearRange As Range
-        Set clearRange = ws.Range( _
-            ws.Cells(BASE_ROW_START, ruleLineColumnNum + 1), _
-            ws.Cells(BASE_ROW_END, Columns.Count) _
-        )
-        clearRange.Borders.LineStyle = xlLineStyleNone
-    End If
-End Sub
+    ruleLineColumnAlf = Split(ws.Cells(1, ruleLineColumnNum + 1).Address(True, False), "$")(0)
+    ws.Range(ruleLineColumnAlf & "2:XFD26").Borders.LineStyle = xlLineStyleNone
 
+End Sub
 
 '------------------------------------------------------------
 ' 時刻を時間セルに挿入する処理
