@@ -530,341 +530,226 @@ Function removeCaptionNoise(fps As Double)
 End Function
 
 
-'姿勢重量点調査票で指定された評価除外、評価強制をポイント計算シートに反映させる
-'ポイント計算シートのフラグから時間を計算して、姿勢重量点調査票に転記する
-'１回目はPythonプログラムから値をもらう
-'更新ボタンを押されたときはポイント計算シートから値を読み取る
-' 引数1 ：フレームレート
-' 戻り値：なし
+'------------------------------------------------------------
+' 姿勢重量点調査票に評価除外・強制フラグの反映と作業時間等を計算・転記する
+'
+' 概要:
+'   - フレームレートから時間を計算
+'   - 除外フラグの有無に応じた開始/終了時刻の決定
+'   - 姿勢素点や推定・欠損区間の時間を集計
+'   - 作業名・作業時間を自動で補完
+'
+' 備考:
+'   - 1回目はPythonからの入力、更新ボタンで再計算
+'   - 動画末尾の除外も考慮
+'------------------------------------------------------------
 Sub fixSheetZensya()
 
-    '表示・更新をオフにする
+    ' 画面更新を一時停止（パフォーマンス向上用）
     Call stopUpdate
-    Dim fps                         As Double
-    Dim separate_work_time          As Double 'tとt0の差を取得する
-    Dim t0                          As Double '1つ前のtを一時保存する
-    Dim t                           As Double '作業時間
 
-    Dim i                           As Long
-    Dim j                           As Long
-    Dim k                           As Long
-    Dim l                           As Long
-
-    Dim max_row_num                 As Long
-
-    Dim expand_no                   As Long '処理行数拡張用
-    Dim data_flag                   As Long '姿勢素点の データ除外（0） または データ強制（1～10）フラグ記憶用 左記に該当しない場合は-1を入れて使う
-
-    Dim top_jogai_end               As Long
-    Dim bottom_jogai_start          As Long
-
-    Dim koshimage_flag              As Long '腰曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
-    Dim hizamage_flag               As Long '膝曲げの データ除外（0）または データ強制（1） フラグ記憶用 左記に該当しない場合は-1を入れて使う
-
-    Dim start_frame                 As Long
-    Dim end_frame                   As Long
-    Dim start_array_num             As Long
-    Dim end_array_num               As Long
-
-    Dim data_array(15)              As Long '姿勢重量点 1 ~ 10 点、欠損区間、推定区間、拳上、腰曲げ、膝曲げの時間を合計するために使用
-    Dim data_no                     As Long  'data_arrayの配列番号。1～10:姿勢重量点 11:欠損区間 12:推定区間 13:拳上 14:腰曲げ 15:膝曲げ
-
-    Dim removeFrames                As Long
-    Dim separate_removeFrames       As Long
-    Dim workFrames                  As Long
-
-    Dim separate_koshimage_missing  As Double '作業分割後　腰曲げ欠損区間
-    Dim separate_koshimage_predict  As Double '作業分割後　腰曲げ推定区間
-    Dim separate_hizamage_missing   As Double '作業分割後　膝曲げ欠損区間
-    Dim separate_hizamage_predict   As Double '作業分割後　膝曲げ推定区間
-
-    Dim seconds                     As Double
-    Dim hours                       As String
-    Dim minutes                     As String
-    Dim remainingSeconds            As String
-    Dim milliseconds                As String
-    Dim format_time                 As String
-    Dim val                         As Double
-    Dim lastInputRow                As Long: lastInputRow = 1
-    Dim intermediateFlag            As Boolean
-    Dim sheet_index                 As Long
-
-    'フレームレートを取得
-    fps = getFps()
-
-    'ポイント計算シートの最終行を取得
-    max_row_num = getLastRow()
-
-    '処理する追加行数を取得する
-    'その他（時間計7.5H）のセル位置の移動量を調べる  ※最大999行(<979)にする
-    expand_no = 0
+    ' ===== 初期化セクション =====
+    ' フレームレートを取得
+    Dim fps         As Double: fps = getFps()
+    ' 最終行番号を取得（分析対象の最終フレーム）
+    Dim max_row_num As Long: max_row_num = getLastRow()
+    ' シート拡張行数（自動検出）
+    Dim expand_no   As Long: expand_no = 0
+    ' 拡張チェックワードが出現するまでループ
     Do While s_ProcessEvaluation_2nd.Cells(29 + expand_no, 3) <> SHIJUTEN_SHEET_EXPAND_NUM_CHECK_WORD And expand_no < 979
         expand_no = expand_no + 1
     Loop
 
-    'ここから初回分析のための処理
-    '作業開始時間が空の場合は、0.0を入力
-    If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) = True Then
+    ' ===== 作業情報用の変数定義と初期化 =====
+    Dim i                   As Long
+    Dim j                   As Long
+    Dim bottom_jogai_start  As Long
+    Dim format_time         As String
+    Dim lastInputRow        As Long: lastInputRow = 1
+
+    ' 時間関連の変数定義（t: 現在時間、t0: 前の作業終了時間）
+    Dim t               As Double: t = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME + 1).Value
+    Dim t0              As Double: t0 = t
+
+    ' フレーム位置
+    Dim start_frame     As Long
+    Dim end_frame       As Long
+
+    ' 作業時間および除外時間のフレームカウント
+    Dim workFrames      As Long
+    Dim removeFrames    As Long
+
+    ' 姿勢・状態別カウント格納配列（1〜15）
+    Dim data_array(15)  As Long ' 姿勢10要素 + 欠損 + 推定 + 空欄 + 腰曲げ + 膝曲げ
+    Dim data_no         As Long
+
+    ' ===== 作業開始・終了時刻の初期設定 =====
+    ' 開始時間が空欄の場合、初期値（00:00:00.00）を代入
+    If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
         s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.00"
     End If
 
-    '作業終了時間が空の場合は、ポイント計算シート最終行から計算して入力
-    If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME)) = True Then
-        seconds = max_row_num / fps 'ここに変換したい秒数を入力してください
-
-        format_time = timeConvert(seconds)
-
-        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = format_time
+    ' 終了時間が未入力なら動画全体から換算した終了時間を代入
+    If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME)) Then
+        Dim seconds As Double: seconds = max_row_num / fps
+        Dim time_str As String: time_str = timeConvert(seconds)
+        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = time_str
     End If
 
-    'ここから帳票更新のための処理
-    '動画の先頭に除外がある場合、除外の末尾より一つ下のセルから１つ目の作業開始時間を計算する
+    ' ===== 除外フラグによる開始時間調整 =====
+    ' 除外フラグを取得（冒頭が除外されているか）
+    Dim remove_flag As Variant: remove_flag = s_PointCalc.Cells(2, COLUMN_DATA_REMOVE_SECTION).Value
 
-    '除外フラグの先頭が0の時
-    If s_PointCalc.Cells(2, COLUMN_DATA_REMOVE_SECTION) = 0 Then
-        '0秒にする
+    ' 除外なし：そのまま00:00:00.00からスタート
+    If remove_flag = 0 Then
         s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.00"
 
-    '除外フラグの先頭が1の時
-    ElseIf s_PointCalc.Cells(2, COLUMN_DATA_REMOVE_SECTION) = 1 Then
-        'リセット
-        top_jogai_end = 0
-        '除外の末尾を調べる
-        '除外フラグが1でなくなるまでループ
+    ' 除外あり：除外が終わるまでスキップして開始
+    ElseIf remove_flag = 1 Then
+        Dim top_jogai_end As Long: top_jogai_end = 0
         Do While s_PointCalc.Cells(2 + top_jogai_end, COLUMN_DATA_REMOVE_SECTION) = 1
             top_jogai_end = top_jogai_end + 1
         Loop
-
-        '除外の終了時間を計算して開始時間の１行目に入力
-        seconds = top_jogai_end / fps 'ここに変換したい秒数を入力してください
-
-        format_time = timeConvert(seconds)
-
-        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = format_time
+        seconds = top_jogai_end / fps
+        time_str = timeConvert(seconds)
+        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = time_str
     End If
 
-
-    'ここから作業分割に関する処理
+    ' ===== 各作業行の処理（開始/終了/時間/名称） =====
     For i = 0 To SHIJUTEN_SHEET_ROW_EXPAND_NUMBER_CHECK - SHIJUTEN_SHEET_ROW_POSESTART_INDEX - 1 + expand_no
-        '作業開始時間が空なら
-        If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
-            '作業名、作業終了時間、作業時間、拳上、腰曲げ、膝曲げを空にする
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).MergeArea.ClearContents 'セル結合があるため
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).ClearContents
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).ClearContents
+        With s_ProcessEvaluation_2nd
+            Dim currentStartTime As Variant
+            currentStartTime = .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value
 
-            '姿勢素点とひねりを空にする
-            For j = 0 To 10
-                '姿勢要素時間（フレーム数）が0のときは、空白セルにする
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).ClearContents
-            Next
-
-            'NG時間を空にする
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_TIME).ClearContents
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_HIZAMAGE_TIME).ClearContents
-
-        '作業開始時間が入力されているなら
-        Else
-            'ここから作業名の入力
-            '作業名が空なら入力する
-            If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME)) Then
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME) = "作業" & i + 1
-            End If
-
-            'ここから作業終了時間の入力
-            '１つ先の行の作業開始時間が空の時
-            If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i + 1, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
-
-                'カウントリセット
-                bottom_jogai_start = 0
-                'max_row_num行目から一つずつ上がって、除外の先頭位置を探す
-                Do While s_PointCalc.Cells(max_row_num - bottom_jogai_start, COLUMN_DATA_REMOVE_SECTION) = 1
-                    bottom_jogai_start = bottom_jogai_start + 1
-                Loop
-
-                '動画末尾にある除外の開始時間を計算して入力
-                seconds = (max_row_num - bottom_jogai_start - 1) / fps
-
-                format_time = timeConvert(seconds)
-
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = format_time
-
-
-            '１つ先の行の作業開始時間に値がある時、その値を入れる
+            ' 開始時間が空 → 無効行とみなして各セルを初期化
+            If IsEmpty(currentStartTime) Then
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).MergeArea.ClearContents
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).ClearContents
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).ClearContents
+                For j = 0 To 10
+                    .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).ClearContents
+                Next j
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_TIME).ClearContents
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_HIZAMAGE_TIME).ClearContents
             Else
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value _
-                    = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i + 1, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value
+                ' 作業名が空欄 → 自動補完（"作業n"）
+                If IsEmpty(.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).Value) Then
+                    .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).Value = "作業" & i + 1
+                End If
+
+                ' 終了時間の自動補完：次行が空なら末尾から計算
+                Dim nextRowStartTime As Variant
+                nextRowStartTime = .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i + 1, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value
+                If IsEmpty(nextRowStartTime) Then
+                    bottom_jogai_start = 0
+                    Do While s_PointCalc.Cells(max_row_num - bottom_jogai_start, COLUMN_DATA_REMOVE_SECTION) = 1
+                        bottom_jogai_start = bottom_jogai_start + 1
+                    Loop
+                    seconds = (max_row_num - bottom_jogai_start - 1) / fps
+                    format_time = timeConvert(seconds)
+                    .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = format_time
+                Else
+                    .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = nextRowStartTime
+                End If
+
+                ' 再計算用の更新
+                If Not IsEmpty(currentStartTime) Then
+                    lastInputRow = SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i - 9
+                End If
+
+                Call restartUpdate
+                Call stopUpdate
+
+                ' 実作業時間（終了 - 開始）
+                Dim startTimeSerial As Double
+                Dim endTimeSerial   As Double
+                startTimeSerial = .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME + 1).Value
+                endTimeSerial = .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME + 1).Value
+
+                .Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value = endTimeSerial - startTimeSerial
             End If
+        End With
+    Next i
 
-            If Not IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
-                lastInputRow = SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i - 9 '上部のカウントを-しておく
-            End If
-
-            '行程評価シートで計算式が入力されたセルの値を更新する
-            Call restartUpdate
-            Call stopUpdate
-
-            '作業終了時間と作業開始時間から作業時間を計算してセルに入力
-            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value = _
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME + 1).Value _
-                - s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME + 1).Value
-        End If
-    Next
-
-    '作業No.の代入
+    ' ===== 作業Noに通し番号を割り当てる処理 =====
     For i = 0 To 19 + expand_no
         s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NUMBER).Value = i + 1
-    Next
+    Next i
 
-    '最初の作業（除外後の開始時刻）をシートから読み取り、t0 = t = 実際の開始秒 で初期化する。
-    t = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME + 1).Value
-    t0 = t
-
+    ' ===== 各作業ブロックに対して姿勢・状態の集計処理 =====
     For i = 0 To 19 + expand_no
-        '黄色セルの時間を読み取る
-        '（t0秒～t秒までの姿勢を求める）
-        separate_work_time = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value
-        t0 = t
-        t = t + separate_work_time '作業時間を単一で入力する場合
+        Dim isWorkValid As Boolean
+        isWorkValid = Not IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME))
 
-        '--------------------------------------------------
-        'start_frameの考え方
-        'start_frameはt0秒のフレーム数とする
-        '例：t0 = 5秒、fps = 30の場合、start_frameは5 * 30 = 150
-        '
-        'end_frameの考え方
-        '動画のフレーム数は0から始まるので、end_frameはt秒のフレーム数-1とする
-        '例：t = 10秒、fps = 30の場合、end_frameは10 * 30 - 1 = 299
-        '
-        'vbaのfor文は、範囲の終わりの値を含むので、start_frame To end_frameで処理する
-        'jishaやoutputCaptionなどでも同様の考え方で処理している
-        '--------------------------------------------------
+        If isWorkValid Then
+            ' 対象時間の取得
+            Dim separate_work_time As Double
+            separate_work_time = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value
 
-        '秒数からフレーム数へ変換
-        start_frame = t0 * fps
-        end_frame = t * fps - 1
+            ' 開始/終了フレームの計算
+            t0 = t
+            t = t + separate_work_time
+            start_frame = t0 * fps
+            end_frame = t * fps - 1
 
-        '姿勢要素時間を入れる変数の初期化
-        For j = 1 To 15
-            data_array(j) = 0
-        Next
-
-        '欠損推定区間をカウントする変数の初期化
-        separate_koshimage_missing = 0
-        separate_koshimage_predict = 0
-        separate_hizamage_missing = 0
-        separate_hizamage_predict = 0
-
-        'start_frameフレーム(t0秒) から end_frameフレーム(t秒) までの処理
-        '作業時間が入力されている行のみ処理を実行する
-        If Not IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
-
-            Debug.Print ("start_rnd:" & start_frame & " " & end_frame)
-
-            '分割地の除外フレームカウントを初期化
+            ' カウンタ初期化
+            For j = 1 To 15
+                data_array(j) = 0
+            Next j
             removeFrames = 0
 
+            ' フレームごとの状態カウント
             For j = start_frame To end_frame
-
-                '姿勢素点の値をカウント
                 data_no = s_PointCalc.Cells(2 + j, COLUMN_DATA_RESULT_FIX).Value
-                data_array(data_no) = data_array(data_no) + 1
+                If data_no >= 1 And data_no <= 10 Then
+                    data_array(data_no) = data_array(data_no) + 1
+                End If
 
-                'データ欠損区間をカウント
-                data_no = s_PointCalc.Cells(2 + j, COLUMN_DATA_MISSING_SECTION).Value
-                If data_no = 1 Then
+                If s_PointCalc.Cells(2 + j, COLUMN_DATA_MISSING_SECTION).Value = 1 Then
                     data_array(11) = data_array(11) + 1
                 End If
-
-                'データ推定区間をカウント
-                data_no = s_PointCalc.Cells(2 + j, COLUMN_DATA_PREDICT_SECTION).Value
-                If data_no >= 1 And data_no <= 10 Then
+                If s_PointCalc.Cells(2 + j, COLUMN_DATA_PREDICT_SECTION).Value >= 1 Then
                     data_array(12) = data_array(12) + 1
                 End If
-
-                '腰曲げフラグをカウント
-                data_no = s_PointCalc.Cells(2 + j, COLUMN_DATA_RESULT_GH_KOSHIMAGE).Value
-                If data_no = 1 Then
+                If s_PointCalc.Cells(2 + j, COLUMN_DATA_RESULT_GH_KOSHIMAGE).Value = 1 Then
                     data_array(14) = data_array(14) + 1
                 End If
-
-                '膝曲げフラグをカウント
-                data_no = s_PointCalc.Cells(2 + j, COLUMN_DATA_RESULT_GH_HIZAMAGE).Value
-                If data_no = 1 Then
+                If s_PointCalc.Cells(2 + j, COLUMN_DATA_RESULT_GH_HIZAMAGE).Value = 1 Then
                     data_array(15) = data_array(15) + 1
                 End If
-
-                '腰曲げ欠損をカウント
-                If s_PointCalc.Cells(2 + j, COLUMN_DATA_KOSHIMAGE_MISSING_SECTION).Value = 1 Then
-                    separate_koshimage_missing = separate_koshimage_missing + 1
-                End If
-
-                '腰曲げ推定をカウント
-                If s_PointCalc.Cells(2 + j, COLUMN_DATA_KOSHIMAGE_PREDICT_SECTION).Value = 1 Then
-                    separate_koshimage_predict = separate_koshimage_predict + 1
-                End If
-
-                '膝曲げ欠損をカウント
-                If s_PointCalc.Cells(2 + j, COLUMN_DATA_HIZAMAGE_MISSING_SECTION).Value = 1 Then
-                    separate_hizamage_missing = separate_hizamage_missing + 1
-                End If
-
-                '膝曲げ推定をカウント
-                If s_PointCalc.Cells(2 + j, COLUMN_DATA_HIZAMAGE_PREDICT_SECTION).Value = 1 Then
-                    separate_hizamage_predict = separate_hizamage_predict + 1
-                End If
-
-                '除外区間をカウント
                 If s_PointCalc.Cells(2 + j, COLUMN_DATA_REMOVE_SECTION).Value = 1 Then
                     removeFrames = removeFrames + 1
                 End If
 
-                'ポイント計算シートのキャプション列へ、姿勢重量点調査票の作業No,と作業名を読み取り、
-                '"作業No.xxx_作業名 "として入れておく
-                s_ProcessEvaluation_2nd.Cells(2 + j, COLUMN_CAPTION_WORK_NAME).Value = _
-                "作業No." & _
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NUMBER).Value & _
-                " " & _
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).Value & _
-                " "
+                ' キャプション欄への出力（作業No + 作業名）
+                Dim workNoLabel As String
+                workNoLabel = "作業No." & s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NUMBER).Value & _
+                              " " & s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).Value
+                s_ProcessEvaluation_2nd.Cells(2 + j, COLUMN_CAPTION_WORK_NAME).Value = workNoLabel
+            Next j
 
-            Next
-
-            '作業時間合計値を算出
+            ' 除外を除いた実際の作業フレーム数 → 秒に変換
             workFrames = (end_frame + 1 - start_frame) - removeFrames
             s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value = workFrames / fps
 
-            '除外フラグの個数がフレーム全体の時と一致していたときはのみ,全ての行の時間を0,開始終了を-にする
-            If top_jogai_end + 1 = max_row_num Then
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_TIME).Value = 0
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "-"
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORKEND_TIME).Value = "-"
-            End If
+            ' 姿勢データを秒換算で出力
+            For j = 0 To 9
+                Dim poseCount As Long
+                poseCount = data_array(10 - j)
+                If poseCount = 0 Then
+                    s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).Value = ""
+                Else
+                    s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).Value = poseCount / fps
+                End If
+            Next j
 
+            ' 腰曲げ・膝曲げも同様に出力
+            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_KOSHIMAGE_TIME).Value = data_array(14) / fps
+            s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_HIZAMAGE_TIME).Value = data_array(15) / fps
         End If
-
-        '姿勢要素10～1に対する個別処理
-        For j = 0 To 9
-
-            If data_array(10 - j) = 0 Then
-                '姿勢要素時間（フレーム数）が0のときは、空白セルにする
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).Value = ""
-            Else
-                '姿勢要素時間（フレーム数）があれば代入する
-                s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX + j).Value = data_array(SHIJUTEN_SHEET_COLUMN_POSE_START_INDEX - j) / fps
-            End If
-
-CONTINUE:
-
-        Next
-
-    Next
-
-    '表示・更新をオンに戻す
-    Call restartUpdate
+    Next i
 
 End Sub
-
 
 
 '字幕ファイル出力
