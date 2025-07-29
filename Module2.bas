@@ -721,11 +721,6 @@ Sub fixSheetZensya()
                     removeFrames = removeFrames + 1
                 End If
 
-                ' キャプション欄への出力（作業No + 作業名）
-                Dim workNoLabel As String
-                workNoLabel = "作業No." & s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NUMBER).Value & _
-                              " " & s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX + i, SHIJUTEN_SHEET_COLUMN_WORK_NAME).Value
-                s_ProcessEvaluation_2nd.Cells(2 + j, COLUMN_CAPTION_WORK_NAME).Value = workNoLabel
             Next j
 
             ' 除外を除いた実際の作業フレーム数 → 秒に変換
@@ -894,7 +889,6 @@ Function outputCaption(movieName As String)
             Print #1, Replace(Track1OutputString2, vbLf, vbCrLf)
             Print #1, ""
             Print #1, ""
-            .Cells(i, COLUMN_CAPTION_WORK_NAME).Clear
 
             ' 初期化
             ColorName1 = "#ffffff"
