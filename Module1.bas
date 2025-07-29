@@ -190,7 +190,7 @@ Private Sub autoFillTime(ws As Worksheet, min As Long, endclm As Long)
         boldcnt = boldcnt + 1
 
         With r
-            .Merge True                      ' セル結合（横方向）
+            .Merge True                     ' セル結合（横方向）
             .Orientation = -90              ' 縦書き（90度回転）
             .ReadingOrder = xlContext       ' 文字方向：自動判定
             .HorizontalAlignment = xlCenter ' 横位置：中央
@@ -290,8 +290,8 @@ Sub paintPostureScore(processingRange As Long)
     Dim fps             As Double
 
     '単位時間の繰り返し処理の開始終了地点を定義
-    Dim wholeStart As Long
-    Dim wholeEnd   As Long
+    Dim wholeStart      As Long
+    Dim wholeEnd        As Long
 
     '姿勢点一時記憶用の変数
     Dim postureScoreFlag        As Long
@@ -329,8 +329,7 @@ Sub paintPostureScore(processingRange As Long)
         '最終行を取得
         maxRowNum = getLastRow()
         '配列の最後尾
-'        余分を削除
-        maxRowNum = maxRowNum - 1
+        maxRowNum = maxRowNum - 1 '余分を削除
 
         '配列を再定義
         ReDim postureScoreDataArray(maxRowNum, 0)
@@ -340,14 +339,12 @@ Sub paintPostureScore(processingRange As Long)
 
         '配列の中に値を入れる
         For RowNumCount = 1 To maxRowNum
-'        For i = 1 To 10
             '姿勢点の列を配列に入れる
             '配列は0から始まるため+1、2行目から使用するため+1
             postureScoreDataArray(RowNumCount - 1, 0) = .Cells(RowNumCount + 1, COLUMN_DATA_RESULT_ORIGIN).Value
 
             '信頼性を配列に入れる
             '1:測定、2:推定、3:欠損
-
             If .Cells(RowNumCount + 1, COLUMN_MEASURE_SECTION).Value > 0 Then
                 reliabilityDataArray(RowNumCount, 0) = 1
             End If
@@ -358,6 +355,7 @@ Sub paintPostureScore(processingRange As Long)
                 reliabilityDataArray(RowNumCount, 0) = 3
             End If
         Next
+
         'フレームレートを取得
         fps = getFps()
         Dim video_sec As Double: video_sec = wholeEnd / fps
@@ -372,7 +370,6 @@ Sub paintPostureScore(processingRange As Long)
     If processingRange = 1 Then
         'アクティブセルの一番左が6列目以下の時
         'エラーメッセージを出して処理をやめる
-
         shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
         baseClm = LIMIT_COLUMN * shtPage
 
@@ -435,7 +432,6 @@ Sub paintPostureScore(processingRange As Long)
         shtPage = calcSheetNamePlace(ThisWorkbook.ActiveSheet)
         baseClm = LIMIT_COLUMN * shtPage
 
-
         'pageLimitを次のページとなる閾値まで更新
         thisPageLimit = (shtPage + 1) * LIMIT_COLUMN
         preClm = (LIMIT_COLUMN * shtPage) * -1
@@ -459,8 +455,8 @@ Sub paintPostureScore(processingRange As Long)
         postureScoreCounterArray(postureScoreFlag) = 1
 
         '信頼性を確認
-'        reliabilityFlag = reliabilityDataArray(i - 1, 0)230209
         reliabilityFlag = reliabilityDataArray(wholeStartCount, 0)
+
         '信頼性フラグを立てる
         reliabilityCounterArray(reliabilityFlag) = 1
 
