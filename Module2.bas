@@ -586,7 +586,7 @@ Sub fixSheetZensya()
     ' ===== 作業開始・終了時刻の初期設定 =====
     ' 開始時間が空欄の場合、初期値（00:00:00.00）を代入
     If IsEmpty(s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME)) Then
-        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.00"
+        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.000"
     End If
 
     ' 終了時間が未入力なら動画全体から換算した終了時間を代入
@@ -602,7 +602,7 @@ Sub fixSheetZensya()
 
     ' 除外なし：そのまま00:00:00.00からスタート
     If remove_flag = 0 Then
-        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.00"
+        s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME).Value = "00:00:00.000"
 
     ' 除外あり：除外が終わるまでスキップして開始
     ElseIf remove_flag = 1 Then
@@ -1190,13 +1190,13 @@ End Sub
 
 
 '------------------------------------------------------------
-' 秒数を hh:mm:ss.ffff 形式の文字列に変換する関数
+' 秒数を hh:mm:ss.fff 形式の文字列に変換する関数
 '
 ' 引数:
 '   seconds : 変換対象の秒数（小数あり）
 '
 ' 戻り値:
-'   hh:mm:ss.ffff 形式の文字列（ミリ秒は4桁）
+'   hh:mm:ss.fff 形式の文字列（ミリ秒は3桁）
 '
 ' 備考:
 '   - 小数部はミリ秒（1/10000）として切り出し
@@ -1209,8 +1209,8 @@ Function timeConvert(seconds As Double) As String
     Dim min As Long
     Dim hr As Long
 
-    ' 小数部からミリ秒（1/10000）を計算（ずれ防止のため先に処理）
-    ms = (seconds - Int(seconds)) * 10000
+    ' 小数部からミリ秒（1/1000）を計算（ずれ防止のため先に処理）
+    ms = (seconds - Int(seconds)) * 1000
 
     ' 秒数を整数に変換（時・分・秒用）
     seconds = Int(seconds)
@@ -1224,7 +1224,7 @@ Function timeConvert(seconds As Double) As String
     timeConvert = Format(hr, "00") & ":" & _
                   Format(min, "00") & ":" & _
                   Format(sec, "00") & "." & _
-                  Format(ms, "0000")
+                  Format(ms, "000")
 
 End Function
 
