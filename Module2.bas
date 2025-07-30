@@ -466,6 +466,7 @@ Function removeCaptionNoise(fps As Double)
 
     Dim max_row_num     As Long
     Dim i               As Long
+    Dim tmp             As Long
     Dim j               As Long
     Dim k               As Long
     Dim i_max           As Long
@@ -760,55 +761,104 @@ End Sub
 '     字幕のレイアウトやカラーリングを調整。
 '   - 姿勢素点や評価除外など、評価データを条件に従って出力。
 '------------------------------------------------------------
+'字幕ファイル出力
+'引数1 ：動画名
+'戻り値：なし
 Function outputCaption(movieName As String)
-    Dim i                       As Long
-    Dim j                       As Long
-    Dim video_width             As Long
-    Dim video_height            As Long
-    Dim fps                     As Double
-    Dim max_row_num             As Long
-    Dim max_array_num           As Long
-    Dim WorkName()              As String
-    Dim CaptionName2(10)        As String
-    Dim CaptionName2Koshimage   As String
-    Dim CaptionName2Hizamage    As String
-    Dim Track1FileName          As String
-    Dim CaptionName0            As String
-    Dim CaptionName1            As String
-    Dim CaptionNo2              As Long
-    Dim ColorName1              As String
-    Dim ColorName2              As String
-    Dim Track1OutputString1     As String
-    Dim Track1OutputString2     As String
-    Dim track1_font_size1       As Long
-    Dim track1_font_size2       As Long
-    Dim track1_coef_font_size1  As Long
-    Dim track1_coef_font_size2  As Long
+    Dim max_array_num               As Long
+    Dim i                           As Long
+    Dim j                           As Long
+    Dim max_row_num                 As Long
 
-    ' 描画抑止
-    stopUpdate
+    '動画の縦横を比較して文字サイズ調整するため、幅・高さどちらも使用する
+    Dim video_width                 As Long '入力動画の幅 ※3Dポーズが結合された幅ではないため注意
+    Dim video_height                As Long '入力動画の高さ
 
-    ' 動画サイズ取得
-    With ThisWorkbook.Sheets("ポイント計算シート")
-        video_width = .Cells(2, 198)
-        video_height = .Cells(2, 197)
-    End With
+    '※coefはcoefficient（係数、率）の略記
+    Dim track1_coef_font_size1      As Long '字幕トラック1用  上段のサイズ調整用係数
+    Dim track1_coef_font_size2      As Long '字幕トラック1用  下段のサイズ調整用係数
+    Dim track1_font_size1           As Long '字幕トラック1用  上段のサイズ
+    Dim track1_font_size2           As Long '字幕トラック1用  下段のサイズ
 
-    ' サイズに応じた係数設定
+    Dim track2_coef_font_size1      As Long '字幕トラック2用 1段目のサイズ調整用係数
+    Dim track2_coef_font_size2      As Long '字幕トラック2用 2段目のサイズ調整用係数
+    Dim track2_coef_font_size3      As Long '字幕トラック2用 3段目のサイズ調整用係数
+    Dim track2_font_size1           As Long '字幕トラック2用 1段目のサイズ
+    Dim track2_font_size2           As Long '字幕トラック2用 2段目のサイズ
+    Dim track2_font_size3           As Long '字幕トラック2用 3段目のサイズ
+
+    Dim WorkName()                  As String
+
+    Dim CaptionName0                As String   '字幕トラック1用 上段左側 作業名の字幕文字列
+    Dim CaptionName1                As String   '字幕トラック1用 上段右側 帯グラフのデータ（信頼度）の字幕文字列
+    Dim CaptionName2(10)            As String   '字幕トラック1用 下段 評価除外(添え字0)+姿勢素点1～10(添え字1～10)の字幕文字列
+    Dim CaptionNo2                  As Long     'CaptionName2(10)にアクセスする際の添え字格納用変数
+
+    Dim CaptionName2Koshimage       As String   '字幕トラック2用 2段目 腰曲げデータ区間の字幕文字列
+    Dim CaptionName2Hizamage        As String   '字幕トラック2用 2段目 膝曲げデータ区間の字幕文字列
+
+    Dim CaptionName3Koshimage       As String   '字幕トラック2用 ３段目 腰曲げの字幕文字列
+    Dim CaptionName3Hizamage        As String   '字幕トラック2用 ３段目 膝曲げの字幕文字列
+
+    Dim ColorName1                  As String   '字幕トラック1用 上段右側（信頼度 ）の色
+    Dim ColorName2                  As String   '字幕トラック1用 下段  （姿勢素点）の色
+    Dim ColorName2Koshimage         As String   '字幕トラック2用 2段目 （腰曲げデータ区間 ）の色
+    Dim ColorName2Hizamage          As String   '字幕トラック2用 2段目 （膝曲げデータ区間 ）の色
+    Dim ColorName3Koshimage         As String   '字幕トラック2用 3段目 （腰曲げ ）の色
+    Dim ColorName3Hizamage          As String   '字幕トラック2用 3段目 （膝曲げ ）の色
+
+    Dim Track1OutputString1         As String   '字幕トラック1用：上段文字列
+    Dim Track1OutputString2         As String   '字幕トラック1用：下段文字列
+
+    Dim Track2OutputString1         As String   '字幕トラック2用：1段目文字列
+    Dim Track2OutputString2         As String   '字幕トラック2用：2段目文字列
+    Dim Track2OutputString3         As String   '字幕トラック2用：3段目文字列
+
+    Dim Track1FileName              As String   '字幕トラック1用のファイル名
+    Dim Track2FileName              As String   '字幕トラック2用のファイル名
+
+    Dim t                           As Double
+    Dim t0                          As Double
+    Dim separate_work_time          As Double
+    Dim expand_no                   As Long
+    Dim start_frame                 As Double
+    Dim end_frame                   As Double
+    Dim fps                         As Double
+
+    '表示・更新をオフにする
+    Call stopUpdate
+
+    '動画の縦横サイズを取得
+    video_width = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 198)
+    video_height = ThisWorkbook.Sheets("ポイント計算シート").Cells(2, 197) '動画の縦横判定のために高さも取得
+
+    '動画の縦横によって係数を変更する
+    '動画が縦の時
     If video_width < video_height Then
-        track1_coef_font_size1 = TRACK1_TATE_UPPER_COEF
+        track1_coef_font_size1 = TRACK1_TATE_UPPER_COEF  '動画が縦のときのトラック1用：上段
         track1_coef_font_size2 = TRACK1_TATE_LOWER_COEF
+        track2_coef_font_size1 = TRACK2_TATE_1ST_COEF    'トラック2用：1段目
+        track2_coef_font_size2 = TRACK2_TATE_2ND_COEF    'トラック2用：2段目
+        track2_coef_font_size3 = TRACK2_TATE_3RD_COEF    'トラック2用：3段目
+    '動画が横の時
     Else
-        track1_coef_font_size1 = TRACK1_YOKO_UPPER_COEF
+        track1_coef_font_size1 = TRACK1_YOKO_UPPER_COEF  '動画が縦のときのトラック1用：上段
         track1_coef_font_size2 = TRACK1_YOKO_LOWER_COEF
+        track2_coef_font_size1 = TRACK2_YOKO_1ST_COEF    'トラック2用：1段目
+        track2_coef_font_size2 = TRACK2_YOKO_2ND_COEF    'トラック2用：2段目
+        track2_coef_font_size3 = TRACK2_YOKO_3RD_COEF    'トラック2用：3段目
     End If
 
-    ' フォントサイズ設定
-    track1_font_size1 = video_width / track1_coef_font_size1
+    'フォントサイズを設定
+    track1_font_size1 = video_width / track1_coef_font_size1 '動画の縦or横によって分母を変更することで、文字サイズが変わる
     track1_font_size2 = video_width / track1_coef_font_size2
+    track2_font_size1 = video_width / track2_coef_font_size1
+    track2_font_size2 = video_width / track2_coef_font_size2
+    track2_font_size3 = video_width / track2_coef_font_size3
 
-    ' 姿勢素点キャプションの読み込み
-    With ThisWorkbook.Sheets("条件設定シート")
+    '各姿勢の名前と条件の読み出し
+    'MinとMaxが直感的でないので注意
+    With ThisWorkbook.Worksheets("条件設定シート")
         CaptionName2(10) = .Cells(6, 2)
         CaptionName2(9) = .Cells(24, 2)
         CaptionName2(8) = .Cells(42, 2)
@@ -822,50 +872,124 @@ Function outputCaption(movieName As String)
         CaptionName2Koshimage = .Cells(210, 2)
         CaptionName2Hizamage = .Cells(228, 2)
     End With
-    CaptionName2(0) = "0-姿勢評価なし"
 
-    ' ファイル名設定
+    '評価除外用
+    CaptionName2(0) = "0-姿勢評価なし" '下段のキャプション名を表示しない
+
     Track1FileName = ActiveWorkbook.Path & "\" & movieName & ".srt"
+    Track2FileName = ActiveWorkbook.Path & "\" & movieName & CAPTION_TRACK2_FILE_NAME_SOEJI & ".srt"
 
-    ' フレームレートと行数取得
+    'フレームレートの読み出し
     fps = getFps()
+
+    '処理する行数を取得（3列目の最終セル）
     max_row_num = getLastRow()
-    max_array_num = max_row_num - 2
+
+    max_array_num = max_row_num - 1 - 1 '2行目からセルに値が入るため-1、配列は0から使うため-1
+
+    '配列数が決まったため配列を再定義
     ReDim WorkName(max_array_num, 0)
 
-    ' 作業名の読み込み
-    Call fillWorkNames(WorkName, fps, max_array_num)
+    With ThisWorkbook.Sheets("姿勢重量点調査票")
 
-    ' 字幕ファイル書き出し
-    Open Track1FileName For Output As #1
+        '工程評価シートから作業手順と作業名を読み取って配列に書き込む
+        '処理する追加行数を取得する
+        '"要素数"のセル位置の移動量を調べる  ※最大999行(<1050)にする
+        expand_no = 0
+        Do While ThisWorkbook.Worksheets("姿勢重量点調査票").Cells(107 + expand_no, 13) <> "要素数" And expand_no < 1050
+            expand_no = expand_no + 1
+        Loop
+
+        '時間を初期値に設定
+        separate_work_time = 0
+        t0 = 0
+        '動画先頭を除外したときに評価のスタートが0.0秒ではなくなるため変更
+        t = .Cells(GH_HYOUKA_SHEET_ROW_POSESTART, GH_HYOUKA_SHEET_COLUMN_WORKSTART_TIME + 1).Value
+
+        '最初の作業（除外後の開始時刻）をシートから読み取り、t0 = t = 実際の開始秒 で初期化する。
+        t = s_ProcessEvaluation_2nd.Cells(SHIJUTEN_SHEET_ROW_POSESTART_INDEX, SHIJUTEN_SHEET_COLUMN_WORKSTART_TIME + 1).Value
+        t0 = t
+
+        'ポイント計算シートのフラグをカウントして、各作業姿勢の時間を計算する
+        For i = 0 To 89 + expand_no
+
+            '作業開始時間が空なら作業名は入力しない
+            If IsEmpty(.Cells(GH_HYOUKA_SHEET_ROW_POSESTART + i, GH_HYOUKA_SHEET_COLUMN_WORKSTART_TIME)) Then
+
+            '作業開始時間が入力されているなら配列に作業名を入力する
+            Else
+                separate_work_time = .Cells(GH_HYOUKA_SHEET_ROW_POSESTART + i, GH_HYOUKA_SHEET_COLUMN_WORKEND_TIME + 1).Value
+                t0 = t
+                t = separate_work_time '作業時間を単一で入力する場合
+                '秒数からフレーム数へ変換
+                start_frame = t0 * fps
+                end_frame = t * fps - 1
+
+                '作業終了時間はラウンドアップ関数を使用しているため、はみだし防止
+                If end_frame > max_array_num Then
+                    end_frame = max_array_num
+                End If
+
+                '2セット目以降で、前回のend_frameと今回のstart_frameが重なるのを防止する
+                If start_frame > 0 Then
+                    start_frame = start_frame + 1
+                End If
+
+                'start_frameフレーム(t0秒) から end_frameフレーム(t秒) までの処理
+                If start_frame < end_frame Then
+                    For j = start_frame To end_frame
+                        WorkName(j, 0) = _
+                        .Cells(GH_HYOUKA_SHEET_ROW_POSESTART + i, GH_HYOUKA_SHEET_COLUMN_WORK_NUMBER).Text & _
+                        "." & _
+                        .Cells(GH_HYOUKA_SHEET_ROW_POSESTART + i, GH_HYOUKA_SHEET_COLUMN_WORK_NAME).Text
+                    Next
+                End If
+            End If
+        Next
+
+    End With
+
     With ThisWorkbook.Sheets("ポイント計算シート")
+
+        'ファイルを開く
+        Open Track1FileName For Output As #1
+
+        '処理する行数を取得（3列目の最終セル）
+        max_row_num = getLastRow()
+
+        'ファイル出力
         For i = 2 To max_row_num
+
+            'ポイント計算シートのキャプション列より、姿勢重量点調査票の作業名を先に読み取っておく
             CaptionName0 = WorkName(i - 2, 0)
 
-            ' 評価区間の条件
-            Select Case True
-                Case .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0
-                    CaptionName1 = CAPTION_DATA_REMOVE_SECTION
-                    ColorName1 = COLOR_DATA_REMOVE_SECTION
-                Case .Cells(i, COLUMN_DATA_FORCED_SECTION).Value > 0
-                    CaptionName1 = CAPTION_DATA_FORCED_SECTION
-                    ColorName1 = COLOR_DATA_FORCED_SECTION
-                Case .Cells(i, COLUMN_DATA_MISSING_SECTION).Value > 0
-                    CaptionName1 = CAPTION_DATA_MISSING_SECTION
-                    ColorName1 = COLOR_DATA_MISSING_SECTION
-                Case .Cells(i, COLUMN_DATA_MEASURE_SECTION).Value > 0
-                    CaptionName1 = CAPTION_DATA_MEASURE_SECTION
-                    ColorName1 = COLOR_DATA_MEASURE_SECTION
-                Case .Cells(i, COLUMN_DATA_PREDICT_SECTION).Value > 0
-                    CaptionName1 = CAPTION_DATA_PREDICT_SECTION
-                    ColorName1 = COLOR_DATA_PREDICT_SECTION
-            End Select
-
-            ' 姿勢素点の条件
+            'データ区間の描画色、キャプション名を設定する
+            '※はじめに評価除外、データ強制区間、データ不良区間の順に判定する（重複ビットON時、字幕表示の優先度が高い順）
+            ' 今のところ最後のfillDataで測定ビットは同時に立つ仕様。
             If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
+                CaptionName1 = CAPTION_DATA_REMOVE_SECTION
+                ColorName1 = COLOR_DATA_REMOVE_SECTION
+            ElseIf .Cells(i, COLUMN_DATA_FORCED_SECTION).Value > 0 Then
+                CaptionName1 = CAPTION_DATA_FORCED_SECTION
+                ColorName1 = COLOR_DATA_FORCED_SECTION
+            ElseIf .Cells(i, COLUMN_DATA_MISSING_SECTION).Value > 0 Then
+                CaptionName1 = CAPTION_DATA_MISSING_SECTION
+                ColorName1 = COLOR_DATA_MISSING_SECTION
+            ElseIf .Cells(i, COLUMN_DATA_MEASURE_SECTION).Value > 0 Then
+                CaptionName1 = CAPTION_DATA_MEASURE_SECTION
+                ColorName1 = COLOR_DATA_MEASURE_SECTION
+            ElseIf .Cells(i, COLUMN_DATA_PREDICT_SECTION).Value > 0 Then
+                CaptionName1 = CAPTION_DATA_PREDICT_SECTION
+                ColorName1 = COLOR_DATA_PREDICT_SECTION
+            End If
+
+            '姿勢素点の描画色、キャプション名を設定する
+            If .Cells(i, COLUMN_DATA_REMOVE_SECTION).Value > 0 Then
+                '評価除外のとき
                 CaptionNo2 = 0
                 ColorName2 = COLOR_DATA_REMOVE_SECTION
             Else
+                '通常時
                 CaptionNo2 = .Cells(i, COLUMN_DATA_RESULT_FIX).Value
                 If .Cells(i, COLUMN_DATA_RESULT_GREEN).Value > 0 Then
                     ColorName2 = COLOR_DATA_RESULT_GREEN
@@ -876,29 +1000,42 @@ Function outputCaption(movieName As String)
                 End If
             End If
 
-            ' 字幕構築
-            Track1OutputString1 = "<font size=\"" & track1_font_size1 & "\" color =\"#ffffff\">" & CaptionName0 & "</font>" & _
-                                  "<font size=\"" & track1_font_size1 & "\" color =\"" & ColorName1 & "\">" & CaptionName1 & "</font>"
+            Track1OutputString1 = _
+                "<font size=""" & track1_font_size1 & """ color =" & "#ffffff" & ">" & CaptionName0 & "</font>" & _
+                "<font size=""" & track1_font_size1 & """ color =" & ColorName1 & ">" & CaptionName1 & "</font>"
 
-            Track1OutputString2 = "<font size=\"" & track1_font_size2 & "\" color =\"" & ColorName2 & "\">" & CaptionName2(CaptionNo2) & "</font>"
+            Track1OutputString2 = _
+                "<font size=""" & track1_font_size2 & """ color =" & ColorName2 & ">" & CaptionName2(CaptionNo2) & "</font>"
 
-            ' ファイル出力
-            Print #1, " " & i - 1
-            Print #1, .Cells(i, COLUMN_ROUGH_TIME).Value & " --> " & .Cells(i + 1, COLUMN_ROUGH_TIME).Value
-            Print #1, Replace(Track1OutputString1, vbLf, vbCrLf)
-            Print #1, Replace(Track1OutputString2, vbLf, vbCrLf)
+            '字幕文字列をテキストファイルに書き出しする
+            Print #1, " " & i - 1 '数字の両側に半角スペースを入れる。字幕トラック2と区別するため
+            Print #1, .Cells(i, COLUMN_ROUGH_TIME).Value&; " --> " & .Cells(i + 1, COLUMN_ROUGH_TIME).Value '時刻を出力
+
+            Print #1, Replace(Track1OutputString1, vbLf, vbCrLf) '改行コードを置き換え、キャプション出力
+            Print #1, Replace(Track1OutputString2, vbLf, vbCrLf) '改行コードを置き換え、キャプション出力
+
             Print #1, ""
             Print #1, ""
 
-            ' 初期化
+            'ポイント計算シートの字幕文字列 作業No. - 作業名をクリア
+            .Cells(i, COLUMN_CAPTION_WORK_NAME).clear
+
+
+            'デバッグ時、判定されない条件が分かるように色名をリセットしておく
             ColorName1 = "#ffffff"
             ColorName2 = "#ffffff"
-        Next
-    End With
-    Close #1
 
-    ' 描画再開
-    restartUpdate
+        Next
+
+        'ファイルを閉じる
+        Close #1
+        Close #2
+
+    End With
+
+    '表示・更新をオンに戻す
+    Call restartUpdate
+
 End Function
 
 
