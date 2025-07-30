@@ -1028,41 +1028,39 @@ End Sub
 '   初回呼び出し時に現在の幅サイズを基準として記録する。
 '------------------------------------------------------------
 Sub adjustWidth(expansionFlag As Boolean)
-    Static initFin          As Boolean      ' 初回呼び出しフラグ
-    Static wSize            As widthSize    ' 現在の幅サイズ
+    Static initFin        As Boolean                        ' 初回呼び出しフラグ
+    Static wSize          As widthSize                      ' 現在の幅サイズ
 
+    ' 画面更新停止
     Call stopUpdate
 
-    '拡大・縮小どちらのフラグか確認（ボタンから引数受け取る）
-    '縮小ボタン
-
-    '初めて呼ばれた時だけ処理
-    If (initFin = False) Then
-        initFin = initFin + True
+    ' 初回のみ現在の列幅を取得してwSizeを初期化
+    If Not initFin Then
+        initFin = True
         Dim initSize As Long
-        initSize = DataAjsSht.GetWidthPoints
+        initSize = DataAjsSht.GetWidthPoints() ' 単位：ポイント
+
         Select Case initSize
             Case Is < widthSize.Medium
-                wSize = Small
+                wSize = widthSize.Small
             Case Is < widthSize.Large
-                wSize = Medium
+                wSize = widthSize.Medium
             Case Is < widthSize.LL
-                wSize = Large
+                wSize = widthSize.Large
             Case Else
-                wSize = LL
+                wSize = widthSize.LL
         End Select
     End If
 
+    ' フラグに応じて次のサイズへ移行
     wSize = sizeNext(wSize, expansionFlag)
 
     ' シート一覧取得と処理実行
-    Dim sName() As String
-    Dim n As Long
+    Dim sName()     As String
+    Dim n           As Long
     Dim actSheet    As Worksheet: Set actSheet = ActiveSheet
 
-    Set actSheet = ActiveSheet
-    sName() = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢評価修正シート")
-
+    sName = call_GetSheetNameToArrayspecific(ThisWorkbook, "姿勢素点修正シート")
     For n = 1 To UBound(sName)
         Call DataAjsSht.SetCellsHW(CInt(wSize), ThisWorkbook.Sheets(sName(n)))
     Next
@@ -1070,6 +1068,7 @@ Sub adjustWidth(expansionFlag As Boolean)
     ' 元のシートへ戻す
     actSheet.Activate
 
+    ' 画面更新再開
     Call restartUpdate
 End Sub
 
