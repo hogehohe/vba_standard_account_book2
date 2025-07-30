@@ -1153,6 +1153,14 @@ Sub MacroInput3dData(fps As Double, video_width As Long, csv_file_name As String
 End Sub
 
 
+'姿勢重量点調査票の選択と保存
+' 引数1 ：動画名
+' 戻り値：なし
+Sub MacroSaveData(movieName As String)
+    ThisWorkbook.Save
+End Sub
+
+
 '------------------------------------------------------------
 ' 動画データ更新処理マクロ
 '
