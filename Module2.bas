@@ -1241,96 +1241,139 @@ End Sub
 '------------------------------------------------------------
 Sub OutputOtrs()
 
-    Dim i As Long
-    Dim maxRowNum As Long
-    Dim writePoseNum As Long
-    Dim lastPoseNum As Long: lastPoseNum = -1
-    Dim currentTime As Double
-    Dim lastTime As Double
-    Dim targetRowCount As Long: targetRowCount = 1
-    Dim destFilePath As String
-    Dim targetWorkbook As Workbook
-    Dim returnBook As Workbook: Set returnBook = ThisWorkbook
-    Dim fileNameBase As String
-    Dim captionName(10) As String
+    Dim max_row_num    As Long
+    Dim i              As Long
 
-    ' アプリ設定（高速化のため無効化）
+    Dim targetRowCount As Long
+    Dim writePoseNum   As Long
+    Dim lastPoseNum    As Long
+    Dim currentTime    As Double
+    Dim lastTime       As Double
+    Dim ret            As Long
+    Dim destFilePath   As String
+    Dim sourceFilePath As String
+
+    Dim ReturnBook     As Workbook
+    Dim targetWorkbook As Workbook
+    Dim strYYYYMMDD    As String
+    Dim PosExt         As Long
+    Dim StrFileName    As String
+
+    StrFileName = ThisWorkbook.Name
+    PosExt = InStrRev(StrFileName, ".")
+
+    '--- 拡張子を除いたパス（ファイル名）を格納する変数 ---'
+    Dim strFileExExt As String
+
+    If (0 < PosExt) Then
+        StrFileName = Left(StrFileName, PosExt - 1)
+    End If
+
+    'Now関数で取得した現在日付をFormatで整形して変数に格納
+    strYYYYMMDD = Format(Now, "yyyymmdd_HHMMSS_")
+
     With Application
         .ScreenUpdating = False
         .EnableEvents = False
         .Calculation = xlCalculationManual
     End With
+    Set ReturnBook = ActiveWorkbook
+    destFilePath = ActiveWorkbook.Path & "\" & StrFileName & "_otrs.xlsx"
 
-    ' ファイルパス設定（拡張子なしのファイル名を取得）
-    fileNameBase = Left(returnBook.Name, InStrRev(returnBook.Name, ".") - 1)
-    destFilePath = returnBook.Path & "\" & fileNameBase & "_otrs.xlsx"
+    'もしotrs用ファイルがあれば、一度削除しておく
+    If Dir(destFilePath) <> "" Then
+        Kill destFilePath
+    End If
 
-    ' 既存ファイル削除（存在する場合）
-    If Dir(destFilePath) <> "" Then Kill destFilePath
+    '作業用のワークブックのインスタンスを作る
 
-    ' 新しいブックを作成して保存
-    Set targetWorkbook = Workbooks.Add
-    targetWorkbook.SaveAs destFilePath
+    If Dir(destFilePath) = "" Then
+        '新しいファイルを作成
+        Set targetWorkbook = Workbooks.Add
+        '新しいファイルをVBAを実行したファイルと同じフォルダ保存
+        targetWorkbook.SaveAs destFilePath
+    Else
+        Set targetWorkbook = Workbooks.Open(destFilePath)
+    End If
 
-    ' キャプション名を条件設定シートから読み取り
-    With returnBook.Worksheets("条件設定シート")
-        captionName(10) = .Cells(6, 2)
-        captionName(9) = .Cells(24, 2)
-        captionName(8) = .Cells(42, 2)
-        captionName(7) = .Cells(60, 2)
-        captionName(6) = .Cells(78, 2)
-        captionName(5) = .Cells(96, 2)
-        captionName(4) = .Cells(114, 2)
-        captionName(3) = .Cells(132, 2)
-        captionName(2) = .Cells(150, 2)
-        captionName(1) = .Cells(168, 2)
+    ReturnBook.Activate
+    lastPoseNum = -1
+    lastTime = 0
+
+    Dim CaptionName2(10) As String
+
+    With ThisWorkbook.Worksheets("条件設定シート")
+        CaptionName2(10) = .Cells(6, 2)
+        CaptionName2(9) = .Cells(24, 2)
+        CaptionName2(8) = .Cells(42, 2)
+        CaptionName2(7) = .Cells(60, 2)
+        CaptionName2(6) = .Cells(78, 2)
+        CaptionName2(5) = .Cells(96, 2)
+        CaptionName2(4) = .Cells(114, 2)
+        CaptionName2(3) = .Cells(132, 2)
+        CaptionName2(2) = .Cells(150, 2)
+        CaptionName2(1) = .Cells(168, 2)
     End With
-    captionName(0) = "データなし"
 
-    ' 姿勢解析開始
-    With returnBook.Sheets("ポイント計算シート")
-        maxRowNum = getLastRow()
+    CaptionName2(0) = "データなし"
+        '以下のパターン以外はその他とする。
+        '(10) 膝を曲げ上半身前屈(30°～90°)
+        '(9) 膝を曲げ上半身前屈(15°～30°)
+        '(8) 上半身前屈(45°～90°)
+        '(7) 上半身前屈(30°～45°)
+        '(6) 上半身前屈(90°～180°)
+        '(4) 蹲踞または片膝つき蹲踞
+        '(2) 上半身前屈(15°～30°)
+        '(1) 基本の立ち姿勢
+        '(0) 他"
 
-        For i = 2 To maxRowNum
+    With ThisWorkbook.Sheets("ポイント計算シート")
+        max_row_num = getLastRow()
+        targetRowCount = 1
+        Dim lastI As Long
+
+        For i = 2 To max_row_num
+            'COLUMN_DATA_RESULT_ORIGINが空白の可能性があるため一旦その他を入れておく
+            writePoseNum = 0
             On Error Resume Next
-            writePoseNum = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value
-            On Error GoTo 0
+            writePoseNum = .Cells(i, COLUMN_DATA_RESULT_ORIGIN).Value 'キャプション番号のセル代入
 
-            ' 初回処理
+            '最初に別のポーズに変わった時が欲しいので一回目は同一にする。
             If i = 2 Then
                 lastPoseNum = writePoseNum
-                lastTime = .Cells(i - 1, 2).Value
-                Continue For
+                lastI = i - 2
             End If
 
-            ' 姿勢が変化した場合、記録
-            If writePoseNum <> lastPoseNum Then
+            If lastPoseNum <> writePoseNum Then
+                '同一ポーズを取っていた時間が必要（切り替わった一個前の時間）
                 currentTime = .Cells(i - 1, 2).Value
-                With targetWorkbook.Sheets("Sheet1")
-                    .Cells(targetRowCount, COLUMN_POSE_NAME).Value = captionName(lastPoseNum)
-                    .Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
-                End With
+                '書き込み処理
+                targetWorkbook.Activate
+                targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = CaptionName2(lastPoseNum)
+                targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
+                lastI = i - 2
                 targetRowCount = targetRowCount + 1
+
                 lastTime = currentTime
                 lastPoseNum = writePoseNum
+
+                ReturnBook.Activate
             End If
         Next
 
-        ' 最後の姿勢を記録
+        'ループ終了後に最後に取っていた姿勢が継続しているならそれを書き込む
         If lastPoseNum = writePoseNum Then
             currentTime = .Cells(i - 1, 2).Value
-            With targetWorkbook.Sheets("Sheet1")
-                .Cells(targetRowCount, COLUMN_POSE_NAME).Value = captionName(writePoseNum)
-                .Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
-            End With
+            '書き込み処理
+            targetWorkbook.Activate
+            targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_NAME).Value = CaptionName2(writePoseNum)
+            targetWorkbook.Worksheets("Sheet1").Cells(targetRowCount, COLUMN_POSE_KEEP_TIME).Value = Round(currentTime - lastTime, 5)
+            ReturnBook.Activate
         End If
     End With
-
-    ' 終了処理
     s_ProcessEvaluation_2nd.Activate
-    returnBook.Save
-    targetWorkbook.Close SaveChanges:=True
-
+    ThisWorkbook.Save
+    targetWorkbook.Close savechanges:=True
 End Sub
 
 
